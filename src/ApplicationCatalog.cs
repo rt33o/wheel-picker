@@ -11,8 +11,8 @@ namespace WheelPicker {
  internal sealed class InstalledProgram {
   internal string Name,Target,Arguments,WorkingDirectory,IconTarget;
   internal bool IsStoreApp,IsRunning;
-  public string DisplayName {get{return Name+(IsRunning?" · запущено":"");}}
-  public string Detail {get{return IsStoreApp?"Приложение Microsoft Store / Windows":ApplicationCatalog.IsShellTarget(Target)?"Локальное приложение":Target;}}
+  public string DisplayName {get{return Name+(IsRunning?L.T(" · запущено"):"");}}
+  public string Detail {get{return IsStoreApp?L.T("Приложение Microsoft Store / Windows"):ApplicationCatalog.IsShellTarget(Target)?L.T("Локальное приложение"):Target;}}
   public ImageSource Icon {get{return Native.Icon(IconTarget??Target)??Native.Icon(Target);}}
   public string FallbackLetter {get{return Icon==null && !String.IsNullOrWhiteSpace(Name)?Name.Substring(0,1).ToUpperInvariant():"";}}
   internal LaunchItem ToLaunchItem() {return new LaunchItem{Name=Name,Target=Target,Arguments=Arguments??"",WorkingDirectory=WorkingDirectory??"",IconTarget=IconTarget};}
@@ -26,7 +26,7 @@ namespace WheelPicker {
    try {
     shell=Activator.CreateInstance(Type.GetTypeFromProgID("Shell.Application",true));
     folder=Call(shell,"NameSpace","shell:AppsFolder");
-    if(folder==null)throw new InvalidOperationException("Не удалось открыть системный каталог приложений.");
+    if(folder==null)throw new InvalidOperationException(L.T("Не удалось открыть системный каталог приложений."));
     items=Call(folder,"Items");int count=Convert.ToInt32(Get(items,"Count"),CultureInfo.InvariantCulture);
     for(int i=0;i<count;i++) {
      cancellation.ThrowIfCancellationRequested();object item=null;
@@ -90,8 +90,8 @@ namespace WheelPicker {
    string target=Environment.ExpandEnvironmentVariables(item.Target);
    var info=new ProcessStartInfo{FileName=target,Arguments=item.Arguments??"",UseShellExecute=true};
    if(IsShellTarget(target)) {
-    if(!String.IsNullOrWhiteSpace(item.Arguments))throw new InvalidOperationException("Аргументы недоступны для приложений, запускаемых через каталог Windows.");
-    if(target.IndexOf('"')>=0||target.IndexOf('\r')>=0||target.IndexOf('\n')>=0)throw new InvalidOperationException("Недопустимый идентификатор приложения.");
+    if(!String.IsNullOrWhiteSpace(item.Arguments))throw new InvalidOperationException(L.T("Аргументы недоступны для приложений, запускаемых через каталог Windows."));
+    if(target.IndexOf('"')>=0||target.IndexOf('\r')>=0||target.IndexOf('\n')>=0)throw new InvalidOperationException(L.T("Недопустимый идентификатор приложения."));
     info.FileName=Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"explorer.exe");info.Arguments="\""+target+"\"";
    }
    if(!String.IsNullOrWhiteSpace(item.WorkingDirectory))info.WorkingDirectory=Environment.ExpandEnvironmentVariables(item.WorkingDirectory);

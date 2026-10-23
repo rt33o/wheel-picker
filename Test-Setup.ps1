@@ -41,6 +41,8 @@ try {
  [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null
 }
 $settings.Key=86; $settings.Modifiers=3; $settings.Items[0].Name='Проверка 🚀'; $settings.ShowForkBounds=$true
+$settings | Add-Member -NotePropertyName Language -NotePropertyValue 'en' -Force
+$settings | Add-Member -NotePropertyName Halloween -NotePropertyValue $true -Force
 $settings.Version=2
 $settings.Items += [pscustomobject]@{Name='Группа 🚀';Children=@([pscustomobject]@{Name='Блокнот';Target='notepad.exe';Arguments='';WorkingDirectory='';IconTarget=$null})}
 $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $settingsPath -Encoding utf8
@@ -48,6 +50,7 @@ Run-Setup $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS="power
 $updated = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($updated.Key -eq 86 -and $updated.Modifiers -eq 3 -and $updated.Items[0].Name -eq 'Проверка 🚀' -and $updated.ShowForkBounds) 'Upgrade preserves shortcut, Unicode apps and preferences'
 Assert ($updated.Version -eq 2 -and $updated.Items[-1].Name -eq 'Группа 🚀' -and $updated.Items[-1].Children[0].Target -eq 'notepad.exe') 'Upgrade preserves groups and their members'
+Assert ($updated.Language -eq 'en' -and $updated.Halloween) 'Upgrade preserves English language and Halloween theme'
 Assert ($updated.AutoStart -eq $false) 'Upgrade applies disabled startup preference'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Startup\WheelPicker.lnk'))) 'Upgrade removes unchecked startup shortcut'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Desktop\WheelPicker.lnk'))) 'Upgrade removes unchecked desktop shortcut'

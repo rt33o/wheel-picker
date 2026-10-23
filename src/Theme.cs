@@ -13,12 +13,16 @@ namespace WheelPicker {
   internal static Brush Accent {get{return (Brush)Application.Current.Resources["Accent"];}}
   internal static Brush OnAccent {get{return (Brush)Application.Current.Resources["OnAccent"];}}
   internal static bool Dark {get;private set;}
-  internal static void Theme(bool dark) {
-   Dark=dark;var r=Application.Current.Resources;
+  internal static bool Halloween {get;private set;}
+  internal static void Configure(Configuration config){L.Set(config.Language);Theme(config.Dark,config.Halloween);}
+  internal static void Theme(bool dark){Theme(dark,false);}
+  internal static void Theme(bool dark,bool halloween) {
+   Halloween=halloween;Dark=dark||halloween;dark=Dark;var r=Application.Current.Resources;
    r["Ink"]=Brush(dark?"#F5F3FA":"#24212C"); r["Muted"]=Brush(dark?"#B1ACBD":"#6F6878");
    r["Surface"]=Brush(dark?"#27252E":"#FFFFFF"); r["Page"]=Brush(dark?"#1D1B23":"#F8F7FB");
    r["Line"]=Brush(dark?"#403B4B":"#E8E4ED"); r["Accent"]=Brush(dark?"#BFA6FF":"#7551CE"); r["Tint"]=Brush(dark?"#393044":"#F0EAFB");
    r["OnAccent"]=Brush(dark?"#211B2D":"#FFFFFF");r["ScrollThumb"]=Brush(dark?"#82788F":"#8E849B");
+   if(halloween){r["Ink"]=Brush("#FFF5E9");r["Muted"]=Brush("#C5BAC9");r["Surface"]=Brush("#28252D");r["Page"]=Brush("#1B191F");r["Line"]=Brush("#514654");r["Accent"]=Brush("#FFB663");r["Tint"]=Brush("#4A352C");r["OnAccent"]=Brush("#291B12");r["ScrollThumb"]=Brush("#A99AAC");}
    foreach(Window window in Application.Current.Windows)UpdateWindowFrame(window);
   }
   internal static void Init() {
@@ -52,7 +56,7 @@ namespace WheelPicker {
   internal static Border Card(UIElement content) {return new Border{Background=Surface,BorderBrush=Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(12),Padding=new Thickness(20),Child=content};}
   internal static FrameworkElement ItemIcon(LaunchItem item,double size) {
    if(item.IsGroup) {
-    var icons=new Grid{Width=size,Height=size,ToolTip="Группа приложений"};
+    var icons=new Grid{Width=size,Height=size,ToolTip=L.T("Группа приложений")};
     icons.Children.Add(new Border{Background=(Brush)Application.Current.Resources["Tint"],CornerRadius=new CornerRadius(size/5)});
     for(int i=0;i<Math.Min(3,item.Children.Count);i++){var child=ItemIcon(item.Children[i],size*.53);child.HorizontalAlignment=i==1?HorizontalAlignment.Right:HorizontalAlignment.Left;child.VerticalAlignment=i==2?VerticalAlignment.Bottom:VerticalAlignment.Top;icons.Children.Add(child);}
     if(item.Children.Count==0)icons.Children.Add(new TextBlock{Text="▦",Foreground=Accent,FontSize=size*.7,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center});
