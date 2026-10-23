@@ -1,0 +1,21 @@
+# Build outputs
+/WheelPicker.exe
+/Setup.exe
+/Setup.exe.sha256
+/PowerToysRun/package/
+/dist/
+/work/
+/TestResults/
+*.pdb
+*.previous
+*.bak
+*.log
+
+# Local preferences and credentials
+settings*.json
+.env
+.env.*
+*.user
+*.suo
+.vs/
+.idea/

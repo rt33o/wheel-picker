@@ -1,0 +1,14 @@
+{
+  "ID": "798F6402D8B24DA497B2A7C08DF5162E",
+  "ActionKeyword": "wheel",
+  "IsGlobal": false,
+  "Name": "WheelPicker",
+  "Author": "WheelPicker",
+  "Version": "1.0.0",
+  "Language": "csharp",
+  "Website": "https://github.com/microsoft/PowerToys",
+  "ExecuteFileName": "Community.PowerToys.Run.Plugin.WheelPicker.dll",
+  "IcoPathDark": "Images/wheel.png",
+  "IcoPathLight": "Images/wheel.png",
+  "DynamicLoading": false
+}
