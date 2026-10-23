@@ -115,7 +115,7 @@ namespace WheelPicker {
     Native.SetForegroundWindow(window);
     if(!PostMessage(window,0x0010,IntPtr.Zero,IntPtr.Zero))failed=true;
    }
-   if(failed)throw new InvalidOperationException("Windows не разрешила закрыть окно. Если приложение запущено от имени администратора, закройте его вручную.");
+   if(failed)throw new InvalidOperationException(L.T("Windows не разрешила закрыть окно. Если приложение запущено от имени администратора, закройте его вручную."));
    return true;
   }
   internal static List<IntPtr> FindWindows(AppIdentity identity) {

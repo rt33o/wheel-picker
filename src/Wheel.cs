@@ -56,14 +56,14 @@ namespace WheelPicker {
     var content=new StackPanel{Width=count>8?76:102,HorizontalAlignment=HorizontalAlignment.Center};
     if(i<c.Items.Count) {
      var icon=new Grid{Width=42,Height=34};icon.Children.Add(UI.ItemIcon(c.Items[i],30));
-     if(i<running.Length && running[i])icon.Children.Add(new Ellipse{Width=8,Height=8,Fill=UI.Accent,Stroke=UI.Surface,StrokeThickness=1.5,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Bottom,ToolTip="Приложение открыто"});
+     if(i<running.Length && running[i])icon.Children.Add(new Ellipse{Width=8,Height=8,Fill=UI.Accent,Stroke=UI.Surface,StrokeThickness=1.5,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Bottom,ToolTip=L.T("Приложение открыто")});
      content.Children.Add(icon);
     }
     else {var plus=UI.Text("+",35,UI.Accent);plus.HorizontalAlignment=HorizontalAlignment.Center;plus.Height=40;content.Children.Add(plus);}
-    var label=UI.Text(i<c.Items.Count?c.Items[i].Name:"Добавить",count>8?11:12,i<c.Items.Count?UI.Ink:UI.Accent);
+    var label=UI.Text(i<c.Items.Count?c.Items[i].Name:L.T("Добавить"),count>8?11:12,i<c.Items.Count?UI.Ink:UI.Accent);
     label.TextAlignment=TextAlignment.Center;label.MaxHeight=34;label.Margin=new Thickness(0,7,0,0);content.Children.Add(label);
-    var b=new Button{Content=content,Width=content.Width+4,Height=88,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),ToolTip=i<c.Items.Count?c.Items[i].Name+"\n"+(c.Items[i].IsGroup?"Группа · приложений: "+c.Items[i].Children.Count:c.Items[i].Target):"Добавить приложение",Focusable=true};
-    AutomationProperties.SetName(b,i<c.Items.Count?"Запустить "+c.Items[i].Name:"Добавить приложение");
+    var b=new Button{Content=content,Width=content.Width+4,Height=88,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),ToolTip=i<c.Items.Count?c.Items[i].Name+"\n"+(c.Items[i].IsGroup?L.T("Группа · приложений: ")+c.Items[i].Children.Count:c.Items[i].Target):L.T("Добавить приложение"),Focusable=true};
+    AutomationProperties.SetName(b,i<c.Items.Count?L.T("Запустить ")+c.Items[i].Name:L.T("Добавить приложение"));
     b.Click+=delegate{if(Pick!=null)Pick(slot);};
     SetLeft(b,260+Math.Cos(angle)*164-b.Width/2);SetTop(b,260+Math.Sin(angle)*164-44);Face.Children.Add(b);
    }
@@ -71,11 +71,12 @@ namespace WheelPicker {
    var center=new Border{Width=178,Height=178,CornerRadius=new CornerRadius(89),Background=UI.Surface,BorderBrush=UI.Line,BorderThickness=new Thickness(1)};
    var cp=new StackPanel{VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(15,0,15,0)};
    var brand=UI.Text("W H E E L P I C K E R",9,UI.Accent);brand.TextAlignment=TextAlignment.Center;cp.Children.Add(brand);
-   title=UI.Text("Выберите\nприложение",17,UI.Ink);title.TextAlignment=TextAlignment.Center;title.FontWeight=FontWeights.SemiBold;title.Height=48;title.Margin=new Thickness(0,8,0,4);cp.Children.Add(title);
-   hint=UI.Text("Наведите курсор",10,UI.Muted);hint.TextAlignment=TextAlignment.Center;hint.Height=26;cp.Children.Add(hint);
-   var settings=UI.Button("\uE713",delegate{if(Settings!=null)Settings();});settings.FontFamily=new FontFamily("Segoe MDL2 Assets");settings.FontSize=15;settings.Padding=new Thickness(6);settings.Width=30;settings.Height=28;settings.Background=Brushes.Transparent;settings.BorderThickness=new Thickness(0);settings.ToolTip="Настройки";AutomationProperties.SetName(settings,"Настройки");cp.Children.Add(settings);
+   title=UI.Text(L.T("Выберите\nприложение"),17,UI.Ink);title.TextAlignment=TextAlignment.Center;title.FontWeight=FontWeights.SemiBold;title.Height=48;title.Margin=new Thickness(0,8,0,4);cp.Children.Add(title);
+   hint=UI.Text(L.T("Наведите курсор"),10,UI.Muted);hint.TextAlignment=TextAlignment.Center;hint.Height=26;cp.Children.Add(hint);
+   var settings=UI.Button("\uE713",delegate{if(Settings!=null)Settings();});settings.FontFamily=new FontFamily("Segoe MDL2 Assets");settings.FontSize=15;settings.Padding=new Thickness(6);settings.Width=30;settings.Height=28;settings.Background=Brushes.Transparent;settings.BorderThickness=new Thickness(0);settings.ToolTip=L.T("Настройки");AutomationProperties.SetName(settings,L.T("Настройки"));cp.Children.Add(settings);
    center.Child=cp;SetLeft(center,171);SetTop(center,171);Face.Children.Add(center);
    MouseMove+=delegate(object sender,MouseEventArgs e) {var pos=e.GetPosition(Face);UpdatePointer(pos.X,pos.Y);};
+   if(UI.Halloween)Face.Children.Add(Seasonal.WheelTrim());
   }
   internal static int Hit(double x,double y,int count) {
    double dx=x-260,dy=y-260,r=Math.Sqrt(dx*dx+dy*dy);if(r<96||r>235)return -1;
@@ -84,10 +85,10 @@ namespace WheelPicker {
   internal void Select(int index) {
    if(index==Selected)return; Selected=index;SelectedAction=-1;
    for(int i=0;i<sectors.Length;i++){sectors[i].Fill=i==index?(Brush)Application.Current.Resources["Tint"]:UI.Surface;sectors[i].Stroke=i==index?UI.Accent:UI.Line;sectors[i].StrokeThickness=i==index?3:.7;sectors[i].Effect=i==index?new DropShadowEffect{Color=((SolidColorBrush)UI.Accent).Color,BlurRadius=12,ShadowDepth=0,Opacity=.45}:null;}
-   title.Text=index<0?"Выберите\nприложение":index<config.Items.Count?config.Items[index].Name:"Новое\nприложение";
+   title.Text=index<0?L.T("Выберите\nприложение"):index<config.Items.Count?config.Items[index].Name:L.T("Новое\nприложение");
    ShowBranch();
    if(HasGroup){SyncGroupSelection();return;}
-   hint.Text=HasBranch?"Выберите действие ↗":index<0?"Наведите курсор":index==config.Items.Count?"Добавить в колесо":ReleaseMode?"Отпустите клавишу":config.CloseOnRepeat?"Нажмите для выбора":"Нажмите для запуска";
+   hint.Text=HasBranch?L.T("Выберите действие ↗"):index<0?L.T("Наведите курсор"):index==config.Items.Count?L.T("Добавить в колесо"):ReleaseMode?L.T("Отпустите клавишу"):config.CloseOnRepeat?L.T("Нажмите для выбора"):L.T("Нажмите для запуска");
   }
   internal void UpdatePointer(double x,double y) {
    if(HasGroup&&groupBranch!=null) {
@@ -145,7 +146,7 @@ namespace WheelPicker {
   }
   internal string ActionCaption(int action) {
    if(HasGroup)return groupBranch.ActionCaption(action);
-   return explorer[Selected]?(action==0?"Открыть новое окно":"Закрыть все окна"):(action==0?"Открыть повторно":"Закрыть");
+   return explorer[Selected]?(action==0?L.T("Открыть новое окно"):L.T("Закрыть все окна")):(action==0?L.T("Открыть повторно"):L.T("Закрыть"));
   }
   internal void SelectAction(int action) {
    if(HasGroup){if(groupBranch!=null)groupBranch.SelectAction(action);return;}
@@ -155,7 +156,7 @@ namespace WheelPicker {
     actionShapes[a].Stroke=a==SelectedAction?UI.Accent:UI.Line;
     actionShapes[a].StrokeThickness=a==SelectedAction?2.5:1;
    }
-   if(HasBranch)hint.Text=SelectedAction>=0?(ReleaseMode?"Отпустите — ":"Нажмите — ")+(SelectedAction==0?"открыть":"закрыть"):"Выберите действие";
+   if(HasBranch)hint.Text=SelectedAction>=0?(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==0?L.T("открыть"):L.T("закрыть")):L.T("Выберите действие");
   }
   private void ShowBranch() {
    branch.Children.Clear();boundsOverlay=null;hitRegion=null;groupBranch=null;
@@ -177,7 +178,7 @@ namespace WheelPicker {
     var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false};
     content.Children.Add(shape);actionShapes[a]=shape;
     double labelWidth=Math.Max(46,Math.Min(118,2*290*Math.Sin(half*Math.PI/360)*.84));
-    var label=UI.Text(explorer[Selected]?(a==0?"Новое\nокно":"Закрыть\nвсе окна"):(a==0?"Открыть\nповторно":"Закрыть"),config.Items.Count>7?10.5:12,UI.Ink);
+    var label=UI.Text(explorer[Selected]?(a==0?L.T("Новое\nокно"):L.T("Закрыть\nвсе окна")):(a==0?L.T("Открыть\nповторно"):L.T("Закрыть")),config.Items.Count>7?10.5:12,UI.Ink);
     label.Width=labelWidth;label.Height=52;label.FontWeight=FontWeights.SemiBold;label.TextAlignment=TextAlignment.Center;label.IsHitTestVisible=false;
     var point=ActionPoint(a);SetLeft(label,point.X+130-labelWidth/2);SetTop(label,point.Y+130-19);content.Children.Add(label);
     var button=new Button{Content=content,Width=780,Height=780,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Clip=clip,ToolTip=ActionCaption(a)+" — "+config.Items[Selected].Name};
@@ -193,8 +194,8 @@ namespace WheelPicker {
   }
   private void SyncGroupSelection() {
    SelectedAction=groupBranch.SelectedAction;title.Text=groupBranch.SelectedItem==null?config.Items[Selected].Name:groupBranch.SelectedItem.Name;
-   if(config.Items[Selected].Children.Count==0){hint.Text="Группа пуста\nДобавьте в настройках";return;}
-   hint.Text=groupBranch.SelectedItem==null?"Выберите приложение ↗":HasBranch?(SelectedAction<0?"Выберите действие":(ReleaseMode?"Отпустите — ":"Нажмите — ")+(SelectedAction==0?"открыть":"закрыть")):(ReleaseMode?"Отпустите — открыть":"Нажмите — открыть");
+   if(config.Items[Selected].Children.Count==0){hint.Text=L.T("Группа пуста\nДобавьте в настройках");return;}
+   hint.Text=groupBranch.SelectedItem==null?L.T("Выберите приложение ↗"):HasBranch?(SelectedAction<0?L.T("Выберите действие"):(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==0?L.T("открыть"):L.T("закрыть"))):(ReleaseMode?L.T("Отпустите — открыть"):L.T("Нажмите — открыть"));
   }
   internal void SelectGroupChild(int child) {if(HasGroup&&groupBranch!=null)groupBranch.Select(child);}
   internal Point GroupItemPoint(int child) {return groupBranch.ItemPoint(child);}
@@ -215,11 +216,11 @@ namespace WheelPicker {
   private Action afterClose;
   internal bool IsDismissing {get{return dismissing;}}
   internal WheelWindow(Host h,bool fromHotkey) {
-   UI.ApplyWindowTheme(this);host=h;Title="WheelPicker — колесо";Width=900;Height=930;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=new SolidColorBrush(Color.FromArgb(1,0,0,0));Topmost=true;ShowInTaskbar=false;
+   UI.ApplyWindowTheme(this);host=h;Title=L.T("WheelPicker — колесо");Width=900;Height=930;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=new SolidColorBrush(Color.FromArgb(1,0,0,0));Topmost=true;ShowInTaskbar=false;
    var opened=new bool[h.Config.Items.Count];
    for(int i=0;i<opened.Length;i++)opened[i]=!h.Config.Items[i].IsGroup&&AppActivation.IsRunning(h.Config.Items[i]);
    var root=new Canvas();view=new WheelView(h.Config,opened,AppActivation.IsRunning){ReleaseMode=fromHotkey && h.Config.HoldToSelect};root.Children.Add(view);
-   var tip=UI.Text("Esc — закрыть     ·     ← → — выбор     ·     Enter — выбрать",11,UI.Muted);tip.HorizontalAlignment=HorizontalAlignment.Center;root.Children.Add(tip);Content=root;
+   var tip=UI.Text(L.T("Esc — закрыть     ·     ← → — выбор     ·     Enter — выбрать"),11,UI.Muted);tip.HorizontalAlignment=HorizontalAlignment.Center;root.Children.Add(tip);Content=root;
    view.Pick+=delegate(int index){if(dismissing)return;if(view.ReleaseMode)view.Select(index);else Choose(index);};view.Settings+=delegate{Finish(h.OpenSettings);};
    Loaded+=delegate {
     var cursor=System.Windows.Forms.Cursor.Position;

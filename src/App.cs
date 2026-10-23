@@ -31,8 +31,8 @@ namespace WheelPicker {
   internal Host(string data,bool startupAllowed) {
    StartupAllowed=startupAllowed;
    ConfigPath=Path.Combine(data,"settings.json");
-   try {Config=Configuration.Load(ConfigPath);} catch(Exception e) {Config=Configuration.Defaults(); MessageBox.Show("Не удалось прочитать настройки. Загружены значения по умолчанию. Исходный файл не изменён.\n\n"+e.Message,"WheelPicker");}
-   UI.Theme(Config.Dark);
+   try {Config=Configuration.Load(ConfigPath);} catch(Exception e) {Config=Configuration.Defaults(); MessageBox.Show(L.T("Не удалось прочитать настройки. Загружены значения по умолчанию. Исходный файл не изменён.\n\n")+e.Message,"WheelPicker");}
+   UI.Configure(Config);
   }
   internal void Start(string instance) {
    keyRelease=new KeyReleaseWatch(delegate(int key){if(key==Config.Key)Dispatch(ReleaseHotkey);});
@@ -40,18 +40,14 @@ namespace WheelPicker {
    registered=Native.RegisterHotKey(source.Handle,hotkeyId,Config.Modifiers|0x4000,(uint)Config.Key);
    trayIcon=System.Drawing.Icon.ExtractAssociatedIcon(System.Reflection.Assembly.GetExecutingAssembly().Location);
    tray=new Forms.NotifyIcon{Text="WheelPicker · "+Native.Shortcut(Config),Icon=trayIcon??System.Drawing.SystemIcons.Application,Visible=true};
-   var menu=new Forms.ContextMenuStrip();
-   menu.Items.Add("Открыть колесо",null,delegate{Dispatch(delegate{OpenWheel(false);});});
-   menu.Items.Add("Настройки",null,delegate{Dispatch(OpenSettings);});
-   menu.Items.Add(new Forms.ToolStripSeparator()); menu.Items.Add("Выход",null,delegate{Dispatch(delegate{Application.Current.Shutdown();});});
-   tray.ContextMenuStrip=menu; tray.DoubleClick+=delegate{OpenSettings();};
+   RefreshTray();tray.DoubleClick+=delegate{OpenSettings();};
    showWheel=new EventWaitHandle(false,EventResetMode.AutoReset,instance+".wheel");
    showSettings=new EventWaitHandle(false,EventResetMode.AutoReset,instance+".settings");
    quit=new EventWaitHandle(false,EventResetMode.AutoReset,instance+".quit");
    wheelWait=ThreadPool.RegisterWaitForSingleObject(showWheel,delegate{Dispatch(delegate{OpenWheel(false);});},null,Timeout.Infinite,false);
    settingsWait=ThreadPool.RegisterWaitForSingleObject(showSettings,delegate{Dispatch(OpenSettings);},null,Timeout.Infinite,false);
    quitWait=ThreadPool.RegisterWaitForSingleObject(quit,delegate{Dispatch(delegate{Application.Current.Shutdown();});},null,Timeout.Infinite,false);
-   if(!registered) {OpenSettings(); MessageBox.Show(settings,"Не удалось зарегистрировать клавишу "+Native.Shortcut(Config)+" (код Windows: "+System.Runtime.InteropServices.Marshal.GetLastWin32Error()+"). Выберите другую в настройках. Колесо доступно из значка в трее.","WheelPicker");}
+   if(!registered) {OpenSettings(); MessageBox.Show(settings,L.T("Не удалось зарегистрировать клавишу ")+Native.Shortcut(Config)+L.T(" (код Windows: ")+System.Runtime.InteropServices.Marshal.GetLastWin32Error()+L.T("). Выберите другую в настройках. Колесо доступно из значка в трее."),"WheelPicker");}
   }
   internal void SuspendHotkey() {CancelActivation();if(source!=null && registered){Native.UnregisterHotKey(source.Handle,hotkeyId);registered=false;}}
   internal void ResumeHotkey() {if(source!=null && !registered)registered=Native.RegisterHotKey(source.Handle,hotkeyId,Config.Modifiers|0x4000,(uint)Config.Key);}
@@ -92,7 +88,7 @@ namespace WheelPicker {
   internal void LaunchNew(LaunchItem item) {
    if(item==null||item.IsGroup)return;
    try{Process.Start(AppActivation.LaunchInfo(item));}
-   catch(Exception e){MessageBox.Show("Не удалось открыть приложение.\n\n"+e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
+   catch(Exception e){MessageBox.Show(L.T("Не удалось открыть приложение.\n\n")+e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
   }
   internal void CloseItem(int index) {
    if(index<0||index>=Config.Items.Count)return;
@@ -108,7 +104,7 @@ namespace WheelPicker {
    int candidate=hotkeyId==1?2:1;
    try {
     next.Validate();CancelActivation();
-    if(changed && source!=null && !Native.RegisterHotKey(source.Handle,candidate,next.Modifiers|0x4000,(uint)next.Key)) throw new InvalidOperationException("Это сочетание уже занято. Выберите другое.");
+    if(changed && source!=null && !Native.RegisterHotKey(source.Handle,candidate,next.Modifiers|0x4000,(uint)next.Key)) throw new InvalidOperationException(L.T("Это сочетание уже занято. Выберите другое."));
     bool wasStartup=StartupAllowed && Startup.IsEnabled;
     try {
      if(StartupAllowed && wasStartup!=next.AutoStart)Startup.SetEnabled(next.AutoStart);
@@ -120,8 +116,7 @@ namespace WheelPicker {
     }
     if(changed && source!=null) {if(registered) Native.UnregisterHotKey(source.Handle,hotkeyId); hotkeyId=candidate; registered=true;}
     if(next.Key!=Config.Key||next.Modifiers!=Config.Modifiers)ReleaseHotkey();
-    Config=next.Copy(); UI.Theme(Config.Dark);
-    if(tray!=null) tray.Text="WheelPicker · "+Native.Shortcut(Config);
+    Config=next.Copy(); UI.Configure(Config);RefreshTray();
     return true;
    } catch(Exception e) {if(owner!=null)MessageBox.Show(owner,e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning); else MessageBox.Show(e.Message,"WheelPicker"); return false;}
   }
@@ -132,6 +127,11 @@ namespace WheelPicker {
    if(settings==null) {settings=new SettingsWindow(this); settings.Closed+=delegate{settings=null;}; settings.Show();}
    else {if(settings.WindowState==WindowState.Minimized)settings.WindowState=WindowState.Normal; settings.Activate();}
    Native.SetForegroundWindow(new WindowInteropHelper(settings).Handle);
+  }
+  private void RefreshTray() {
+   if(tray==null)return;
+   tray.Text="WheelPicker · "+Native.Shortcut(Config);var old=tray.ContextMenuStrip;var menu=new Forms.ContextMenuStrip();
+   menu.Items.Add(L.T("Открыть колесо"),null,delegate{Dispatch(delegate{OpenWheel(false);});});menu.Items.Add(L.T("Настройки"),null,delegate{Dispatch(OpenSettings);});menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add(L.T("Выход"),null,delegate{Dispatch(delegate{Application.Current.Shutdown();});});tray.ContextMenuStrip=menu;if(old!=null)old.Dispose();
   }
   internal void OpenWheel(bool hotkey) {
    if(FocusItemDialog())return;
@@ -165,7 +165,7 @@ namespace WheelPicker {
    } finally {itemDialog=null;itemDialogOpening=false;}
   }
   internal void AddItem() {
-   if(Config.Items.Count>=10) {MessageBox.Show("В колесе уже 10 секторов. Удалите приложение или группу в настройках.","WheelPicker"); return;}
+   if(Config.Items.Count>=10) {MessageBox.Show(L.T("В колесе уже 10 секторов. Удалите приложение или группу в настройках."),"WheelPicker"); return;}
    var result=EditItem(null,null); if(result!=null) {var c=Config.Copy(); c.Items.Add(result); Apply(c,null); if(settings!=null)settings.Reload();}
   }
   internal void Launch(int index) {LaunchNew(index);}
@@ -185,7 +185,7 @@ namespace WheelPicker {
     var app=new Application{ShutdownMode=ShutdownMode.OnExplicitShutdown}; UI.Init(); UI.Theme(false);
     int startupOption=Array.IndexOf(args,"--configure-autostart");
     if(startupOption>=0) {
-     if(startupOption+1>=args.Length || (args[startupOption+1]!="on"&&args[startupOption+1]!="off"))throw new ArgumentException("Укажите on или off для --configure-autostart.");
+     if(startupOption+1>=args.Length || (args[startupOption+1]!="on"&&args[startupOption+1]!="off"))throw new ArgumentException(L.T("Укажите on или off для --configure-autostart."));
      var config=Configuration.Load(Path.Combine(data,"settings.json"));config.AutoStart=args[startupOption+1]=="on";config.Save(Path.Combine(data,"settings.json"));return 0;
     }
     if(Array.IndexOf(args,"--install")>=0)return Installer.Run();

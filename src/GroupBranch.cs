@@ -85,13 +85,13 @@ namespace WheelPicker {
     context.ArcTo(PointAt(inner,center-half-Side(inner)),new Size(inner,inner),0,2*(half+Side(inner))>180,SweepDirection.Counterclockwise,true,false);
    }g.Freeze();return hitRegion=g;
   }
-  internal string ActionCaption(int action) {return AppActivation.Resolve(SelectedItem).Explorer?(action==0?"Открыть новое окно":"Закрыть все окна"):(action==0?"Открыть повторно":"Закрыть");}
+  internal string ActionCaption(int action) {return AppActivation.Resolve(SelectedItem).Explorer?(action==0?L.T("Открыть новое окно"):L.T("Закрыть все окна")):(action==0?L.T("Открыть повторно"):L.T("Закрыть"));}
   private void RenderFork() {
    fork.Children.Clear();BoundsOverlay=null;actionShapes=new Path[2];if(!HasBranch)return;
    double half=span/group.Children.Count/2,start=ChildAngle(Selected)-half;
    for(int i=0;i<2;i++) {
     int action=i;var shape=new Path{Data=WheelView.Sector(349,445,start+i*half,half),Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),Cursor=System.Windows.Input.Cursors.Hand};shape.MouseLeftButtonUp+=delegate{SelectAction(action);if(Pick!=null)Pick();};fork.Children.Add(shape);actionShapes[i]=shape;
-    var label=UI.Text(ActionCaption(i).Replace("Открыть ","Открыть\n").Replace("Закрыть все окна","Закрыть\nвсе окна"),11,UI.Ink);label.FontWeight=FontWeights.SemiBold;label.Width=Math.Max(48,Math.Min(116,2*397*Math.Sin(half*Math.PI/360)*.88));label.TextAlignment=TextAlignment.Center;label.IsHitTestVisible=false;
+    var label=UI.Text(ActionCaption(i).Replace(L.T("Открыть "),L.T("Открыть\n")).Replace(L.T("Закрыть все окна"),L.T("Закрыть\nвсе окна")),11,UI.Ink);label.FontWeight=FontWeights.SemiBold;label.Width=Math.Max(48,Math.Min(116,2*397*Math.Sin(half*Math.PI/360)*.88));label.TextAlignment=TextAlignment.Center;label.IsHitTestVisible=false;
     var point=ActionPoint(i);SetLeft(label,point.X+130-label.Width/2);SetTop(label,point.Y+130-17);fork.Children.Add(label);
    }
    if(config.ShowForkBounds){var color=((SolidColorBrush)UI.Accent).Color;color.A=36;BoundsOverlay=new Path{Data=ForkHitGeometry(),Fill=new SolidColorBrush(color),Stroke=UI.Accent,StrokeThickness=1.5,StrokeDashArray=new DoubleCollection{4,3},RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false};fork.Children.Add(BoundsOverlay);}

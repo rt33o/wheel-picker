@@ -75,7 +75,9 @@ namespace WheelPicker {
      wheel.UpdateLayout();SelfTests.Pump();
      var face=(WheelView)((Panel)wheel.Content).Children[0];face.Select(0);
      face.SelectAction(1);
-     var point=new System.Windows.Point(260,260-420);
+     // Stay inside the monitor even when the cursor is near its top edge:
+     // the visible fork ends at 338, while wheel center clamping starts at 350.
+     var point=new System.Windows.Point(260,260-346);
      var screenPoint=face.Face.PointToScreen(point);var client=wheel.PointFromScreen(screenPoint);
      Check(wheel.InputHitTest(client)!=null,"Expanded window receives input outside visible fork");
      SelfTests.Pump();

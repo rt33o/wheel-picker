@@ -2,7 +2,7 @@ param([string]$PowerToysPath = "$env:LOCALAPPDATA\PowerToys")
 $ErrorActionPreference = 'Stop'
 $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 if (!(Test-Path $csc)) { $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework\v4.0.30319\csc.exe' }
-$required = @('System.Private.CoreLib.dll','System.Runtime.dll','System.Collections.dll','System.Diagnostics.Process.dll','System.ComponentModel.Primitives.dll','System.Runtime.Extensions.dll','System.IO.FileSystem.dll','System.Console.dll','System.Windows.Extensions.dll','WindowsBase.dll','System.Xaml.dll','PresentationCore.dll','PresentationFramework.dll','Wox.Plugin.dll')
+$required = @('System.Private.CoreLib.dll','System.Runtime.dll','System.Collections.dll','System.Diagnostics.Process.dll','System.ComponentModel.Primitives.dll','System.Runtime.Extensions.dll','System.IO.FileSystem.dll','System.Console.dll','System.Windows.Extensions.dll','System.Text.Json.dll','System.Memory.dll','WindowsBase.dll','System.Xaml.dll','PresentationCore.dll','PresentationFramework.dll','Wox.Plugin.dll')
 $refs = $required | ForEach-Object { $file = Join-Path $PowerToysPath $_; if (!(Test-Path $file)) { throw "Missing PowerToys runtime library: $file" }; '/r:' + $file }
 $dest = Join-Path $PSScriptRoot 'package'
 New-Item -ItemType Directory -Force -Path $dest,(Join-Path $dest 'Images') | Out-Null

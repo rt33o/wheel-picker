@@ -21,35 +21,38 @@ namespace WheelPicker {
   [DataMember] public bool HoldToSelect=true;
   [DataMember] public bool AtCursor=true;
   [DataMember] public bool Dark;
+  [DataMember] public string Language="ru";
+  [DataMember] public bool Halloween;
   [DataMember] public bool AutoStart=true;
   [DataMember] public bool CloseOnRepeat=true;
   [DataMember] public int ActivationDelayMs=180;
   [DataMember] public int ForkOutwardPadding=120;
   [DataMember] public int ForkSidePadding=60;
   [DataMember] public bool ShowForkBounds;
-  [OnDeserializing] private void BeforeLoad(StreamingContext context) {CloseOnRepeat=true;ActivationDelayMs=180;ForkOutwardPadding=120;ForkSidePadding=60;}
+  [OnDeserializing] private void BeforeLoad(StreamingContext context) {Language="ru";CloseOnRepeat=true;ActivationDelayMs=180;ForkOutwardPadding=120;ForkSidePadding=60;}
   [DataMember] public List<LaunchItem> Items=new List<LaunchItem>();
   public Configuration Copy() {var c=(Configuration)MemberwiseClone(); c.Items=Items.ConvertAll(i=>i.Copy()); return c;}
   public void Validate() {
-   if(ForkOutwardPadding<0||ForkOutwardPadding>300||ForkSidePadding<0||ForkSidePadding>180)throw new InvalidDataException("Запас форка: снаружи от 0 до 300, по бокам от 0 до 180 px.");
-   if(ActivationDelayMs<0||ActivationDelayMs>1000)throw new InvalidDataException("Задержка должна быть от 0 до 1000 мс.");
-   if(Version!=1&&Version!=2) throw new InvalidDataException("Неизвестная версия настроек.");
-   if(Items==null || Items.Count>10) throw new InvalidDataException("В колесе может быть до 10 приложений или групп.");
-   if(Key<1 || Key>254 || Key==123 || (Modifiers&~7u)!=0) throw new InvalidDataException("Выберите клавишу или сочетание без Win. F12 зарезервирована Windows.");
+   if(Language!="ru"&&Language!="en")throw new InvalidDataException(L.T("Неизвестный язык интерфейса."));
+   if(ForkOutwardPadding<0||ForkOutwardPadding>300||ForkSidePadding<0||ForkSidePadding>180)throw new InvalidDataException(L.T("Запас форка: снаружи от 0 до 300, по бокам от 0 до 180 px."));
+   if(ActivationDelayMs<0||ActivationDelayMs>1000)throw new InvalidDataException(L.T("Задержка должна быть от 0 до 1000 мс."));
+   if(Version!=1&&Version!=2) throw new InvalidDataException(L.T("Неизвестная версия настроек."));
+   if(Items==null || Items.Count>10) throw new InvalidDataException(L.T("В колесе может быть до 10 приложений или групп."));
+   if(Key<1 || Key>254 || Key==123 || (Modifiers&~7u)!=0) throw new InvalidDataException(L.T("Выберите клавишу или сочетание без Win. F12 зарезервирована Windows."));
    foreach(var i in Items) {
-    if(i==null||String.IsNullOrWhiteSpace(i.Name))throw new InvalidDataException("У каждого приложения или группы должно быть название.");
+    if(i==null||String.IsNullOrWhiteSpace(i.Name))throw new InvalidDataException(L.T("У каждого приложения или группы должно быть название."));
     if(i.IsGroup) {
-     if(i.Children.Count>3)throw new InvalidDataException("В группе может быть не больше 3 приложений.");
-     foreach(var child in i.Children)if(child==null||child.IsGroup||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException("В группе разрешены только приложения с названием и путём. Вложенные группы не поддерживаются.");
-    } else if(String.IsNullOrWhiteSpace(i.Target))throw new InvalidDataException("У каждого приложения должны быть название и путь.");
+     if(i.Children.Count>3)throw new InvalidDataException(L.T("В группе может быть не больше 3 приложений."));
+     foreach(var child in i.Children)if(child==null||child.IsGroup||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException(L.T("В группе разрешены только приложения с названием и путём. Вложенные группы не поддерживаются."));
+    } else if(String.IsNullOrWhiteSpace(i.Target))throw new InvalidDataException(L.T("У каждого приложения должны быть название и путь."));
    }
   }
   public static Configuration Defaults() {
    var c=new Configuration();
-   c.Items.Add(new LaunchItem{Name="Проводник",Target="explorer.exe"});
-   c.Items.Add(new LaunchItem{Name="Блокнот",Target="notepad.exe"});
-   c.Items.Add(new LaunchItem{Name="Калькулятор",Target="calc.exe"});
-   c.Items.Add(new LaunchItem{Name="Параметры",Target="ms-settings:"});
+   c.Items.Add(new LaunchItem{Name=L.T("Проводник"),Target="explorer.exe"});
+   c.Items.Add(new LaunchItem{Name=L.T("Блокнот"),Target="notepad.exe"});
+   c.Items.Add(new LaunchItem{Name=L.T("Калькулятор"),Target="calc.exe"});
+   c.Items.Add(new LaunchItem{Name=L.T("Параметры"),Target="ms-settings:"});
    c.Items.Add(new LaunchItem{Name="Paint",Target="mspaint.exe"}); return c;
   }
   public static Configuration Load(string path) {

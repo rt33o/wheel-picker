@@ -26,29 +26,29 @@ namespace WheelPicker {
   private bool closed;
   internal ProgramPickerWindow():this(null){}
   internal ProgramPickerWindow(List<InstalledProgram> sample) {
-   UI.ApplyWindowTheme(this);fixture=sample;Title="Выбрать установленное приложение";Width=730;Height=710;MinWidth=570;MinHeight=510;WindowStartupLocation=WindowStartupLocation.CenterOwner;ShowInTaskbar=false;
+   UI.ApplyWindowTheme(this);fixture=sample;Title=L.T("Выбрать установленное приложение");Width=730;Height=710;MinWidth=570;MinHeight=510;WindowStartupLocation=WindowStartupLocation.CenterOwner;ShowInTaskbar=false;
    var root=new Grid{Margin=new Thickness(24)};
    root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});root.RowDefinitions.Add(new RowDefinition());root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});root.RowDefinitions.Add(new RowDefinition{Height=GridLength.Auto});
-   var heading=new StackPanel();var title=UI.Text("Установленные приложения",25,UI.Ink);title.FontWeight=FontWeights.SemiBold;heading.Children.Add(title);
-   var help=UI.Text("Выберите источник и найдите программу по названию.",12,UI.Muted);help.Margin=new Thickness(0,8,0,18);heading.Children.Add(help);root.Children.Add(heading);
+   var heading=new StackPanel();var title=UI.Text(L.T("Установленные приложения"),25,UI.Ink);title.FontWeight=FontWeights.SemiBold;heading.Children.Add(title);
+   var help=UI.Text(L.T("Выберите источник и найдите программу по названию."),12,UI.Muted);help.Margin=new Thickness(0,8,0,18);heading.Children.Add(help);root.Children.Add(heading);
    var tabs=new Grid();tabs.ColumnDefinitions.Add(new ColumnDefinition());tabs.ColumnDefinitions.Add(new ColumnDefinition());
-   localTab=new RadioButton{Content="Локальные",GroupName="ApplicationSource",IsChecked=true,Style=SourceTabStyle()};
+   localTab=new RadioButton{Content=L.T("Локальные"),GroupName="ApplicationSource",IsChecked=true,Style=SourceTabStyle()};
    storeTab=new RadioButton{Content="Microsoft Store",GroupName="ApplicationSource",Style=SourceTabStyle()};Grid.SetColumn(storeTab,1);tabs.Children.Add(localTab);tabs.Children.Add(storeTab);
-   AutomationProperties.SetName(localTab,"Локальные приложения");AutomationProperties.SetName(storeTab,"Приложения Microsoft Store");
+   AutomationProperties.SetName(localTab,L.T("Локальные приложения"));AutomationProperties.SetName(storeTab,L.T("Приложения Microsoft Store"));
    var tabFrame=new Border{Background=UI.Surface,BorderBrush=UI.Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(10),Padding=new Thickness(4),Margin=new Thickness(0,0,0,12),Child=tabs};Grid.SetRow(tabFrame,1);root.Children.Add(tabFrame);
    var searchRow=new DockPanel{Margin=new Thickness(0,0,0,14)};
-   refresh=UI.Button("Обновить",LoadPrograms);refresh.Margin=new Thickness(10,0,0,0);DockPanel.SetDock(refresh,Dock.Right);searchRow.Children.Add(refresh);
-   var searchBox=new Grid();search=new TextBox{MinHeight=40,Padding=new Thickness(12,9,12,9)};AutomationProperties.SetName(search,"Поиск установленных приложений");searchBox.Children.Add(search);
-   placeholder=UI.Text("Поиск в локальных приложениях…",13,UI.Muted);placeholder.Margin=new Thickness(13,0,0,0);placeholder.VerticalAlignment=VerticalAlignment.Center;placeholder.IsHitTestVisible=false;searchBox.Children.Add(placeholder);searchRow.Children.Add(searchBox);Grid.SetRow(searchRow,2);root.Children.Add(searchRow);
+   refresh=UI.Button(L.T("Обновить"),LoadPrograms);refresh.Margin=new Thickness(10,0,0,0);DockPanel.SetDock(refresh,Dock.Right);searchRow.Children.Add(refresh);
+   var searchBox=new Grid();search=new TextBox{MinHeight=40,Padding=new Thickness(12,9,12,9)};AutomationProperties.SetName(search,L.T("Поиск установленных приложений"));searchBox.Children.Add(search);
+   placeholder=UI.Text(L.T("Поиск в локальных приложениях…"),13,UI.Muted);placeholder.Margin=new Thickness(13,0,0,0);placeholder.VerticalAlignment=VerticalAlignment.Center;placeholder.IsHitTestVisible=false;searchBox.Children.Add(placeholder);searchRow.Children.Add(searchBox);Grid.SetRow(searchRow,2);root.Children.Add(searchRow);
    var results=new Grid();list=new ListBox{BorderThickness=new Thickness(0),Background=UI.Surface,Foreground=UI.Ink,Padding=new Thickness(5),ItemTemplate=RowTemplate(),ItemContainerStyle=RowStyle()};
    list.SetValue(ScrollViewer.HorizontalScrollBarVisibilityProperty,ScrollBarVisibility.Disabled);list.SetValue(ScrollViewer.VerticalScrollBarVisibilityProperty,ScrollBarVisibility.Auto);list.SetValue(ScrollViewer.CanContentScrollProperty,true);VirtualizingStackPanel.SetIsVirtualizing(list,true);VirtualizingStackPanel.SetVirtualizationMode(list,VirtualizationMode.Recycling);
    var frame=new Border{Background=UI.Surface,BorderBrush=UI.Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(10),Child=list};results.Children.Add(frame);
-   empty=UI.Text("Загружаю список приложений…",14,UI.Muted);empty.HorizontalAlignment=HorizontalAlignment.Center;empty.VerticalAlignment=VerticalAlignment.Center;empty.Margin=new Thickness(24);empty.TextAlignment=TextAlignment.Center;empty.IsHitTestVisible=false;results.Children.Add(empty);Grid.SetRow(results,3);root.Children.Add(results);
+   empty=UI.Text(L.T("Загружаю список приложений…"),14,UI.Muted);empty.HorizontalAlignment=HorizontalAlignment.Center;empty.VerticalAlignment=VerticalAlignment.Center;empty.Margin=new Thickness(24);empty.TextAlignment=TextAlignment.Center;empty.IsHitTestVisible=false;results.Children.Add(empty);Grid.SetRow(results,3);root.Children.Add(results);
    var statusArea=new StackPanel{Margin=new Thickness(0,10,0,14)};status=UI.Text("",11,UI.Muted);statusArea.Children.Add(status);
    runningAlternative=UI.Button("",delegate{if(showStore)localTab.IsChecked=true;else storeTab.IsChecked=true;});runningAlternative.Visibility=Visibility.Collapsed;runningAlternative.HorizontalAlignment=HorizontalAlignment.Left;runningAlternative.Margin=new Thickness(0,8,0,0);runningAlternative.Foreground=UI.Accent;statusArea.Children.Add(runningAlternative);Grid.SetRow(statusArea,4);root.Children.Add(statusArea);
-   var footer=new DockPanel();var file=UI.Button("Выбрать файл…",delegate{FileRequested=true;DialogResult=false;});DockPanel.SetDock(file,Dock.Left);footer.Children.Add(file);
-   var buttons=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};var cancel=UI.Button("Отмена",delegate{DialogResult=false;});cancel.IsCancel=true;buttons.Children.Add(cancel);
-   choose=UI.Button("Выбрать",Choose);choose.IsDefault=true;choose.IsEnabled=false;UI.Primary(choose);choose.Margin=new Thickness(8,0,0,0);buttons.Children.Add(choose);footer.Children.Add(buttons);Grid.SetRow(footer,5);root.Children.Add(footer);var outer=new Grid{Background=(Brush)Application.Current.Resources["Page"]};outer.Children.Add(root);Content=outer;
+   var footer=new DockPanel();var file=UI.Button(L.T("Выбрать файл…"),delegate{FileRequested=true;DialogResult=false;});DockPanel.SetDock(file,Dock.Left);footer.Children.Add(file);
+   var buttons=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right};var cancel=UI.Button(L.T("Отмена"),delegate{DialogResult=false;});cancel.IsCancel=true;buttons.Children.Add(cancel);
+   choose=UI.Button(L.T("Выбрать"),Choose);choose.IsDefault=true;choose.IsEnabled=false;UI.Primary(choose);choose.Margin=new Thickness(8,0,0,0);buttons.Children.Add(choose);footer.Children.Add(buttons);Grid.SetRow(footer,5);root.Children.Add(footer);var outer=new Grid{Background=(Brush)Application.Current.Resources["Page"]};outer.Children.Add(root);Content=outer;
    localTab.Checked+=delegate{ChangeSource(false);};storeTab.Checked+=delegate{ChangeSource(true);};
    search.TextChanged+=delegate{placeholder.Visibility=String.IsNullOrEmpty(search.Text)?Visibility.Visible:Visibility.Collapsed;Filter();};
    search.PreviewKeyDown+=delegate(object sender,KeyEventArgs e){if(e.Key==Key.Down && list.Items.Count>0){if(list.SelectedIndex<0)list.SelectedIndex=0;list.Focus();e.Handled=true;}};
@@ -64,7 +64,7 @@ namespace WheelPicker {
    if(fixture!=null){SetPrograms(ApplicationCatalog.Normalize(fixture));return;}
    if(cancellation!=null){cancellation.Cancel();cancellation.Dispose();}
    var current=new CancellationTokenSource();cancellation=current;CancellationToken token=current.Token;
-   view=null;list.ItemsSource=null;refresh.IsEnabled=false;choose.IsEnabled=false;list.IsEnabled=false;status.Text="Читаю список приложений Windows…";empty.Text="Загружаю список приложений…";empty.Visibility=Visibility.Visible;
+   view=null;list.ItemsSource=null;refresh.IsEnabled=false;choose.IsEnabled=false;list.IsEnabled=false;status.Text=L.T("Читаю список приложений Windows…");empty.Text=L.T("Загружаю список приложений…");empty.Visibility=Visibility.Visible;
    var worker=new Thread(delegate() {
     List<InstalledProgram> loaded=null;Exception failure=null;
     try {loaded=ApplicationCatalog.Load(token);}catch(OperationCanceledException){return;}catch(Exception e){failure=e;}
@@ -72,7 +72,7 @@ namespace WheelPicker {
     try {Dispatcher.BeginInvoke(new Action(delegate {
      if(closed || token.IsCancellationRequested || !Object.ReferenceEquals(cancellation,current))return;
      refresh.IsEnabled=true;list.IsEnabled=true;
-     if(failure!=null){list.ItemsSource=null;choose.IsEnabled=false;empty.Text="Windows не удалось получить список приложений.\nНажмите «Обновить» или выберите файл.";empty.Visibility=Visibility.Visible;status.Text="Список недоступен · выбор файла доступен внизу";return;}
+     if(failure!=null){list.ItemsSource=null;choose.IsEnabled=false;empty.Text=L.T("Windows не удалось получить список приложений.\nНажмите «Обновить» или выберите файл.");empty.Visibility=Visibility.Visible;status.Text=L.T("Список недоступен · выбор файла доступен внизу");return;}
      SetPrograms(loaded);
     }));}catch(InvalidOperationException){}
    });worker.IsBackground=true;worker.SetApartmentState(ApartmentState.STA);worker.Start();
@@ -84,18 +84,18 @@ namespace WheelPicker {
    if(view==null)return;view.Refresh();
    if(list.Items.Count>0){list.SelectedIndex=0;list.ScrollIntoView(list.SelectedItem);}
    choose.IsEnabled=list.SelectedItem!=null;
-   int total=CountSource(showStore);string category=showStore?"Microsoft Store":"Локальные";
-   empty.Text=total==0?(showStore?"Приложения Microsoft Store не найдены.":"Локальные приложения не найдены.")+"\nМожно переключить вкладку или выбрать файл.":"Во вкладке «"+category+"» ничего не найдено.\nИзмените запрос или переключите вкладку.";
+   int total=CountSource(showStore);string category=showStore?"Microsoft Store":L.T("Локальные");
+   empty.Text=total==0?(showStore?L.T("Приложения Microsoft Store не найдены."):L.T("Локальные приложения не найдены."))+L.T("\nМожно переключить вкладку или выбрать файл."):L.T("Во вкладке «")+category+L.T("» ничего не найдено.\nИзмените запрос или переключите вкладку.");
    empty.Visibility=list.Items.Count==0?Visibility.Visible:Visibility.Collapsed;
    bool otherRunning=false;foreach(var app in programs)if(app.IsRunning&&app.IsStoreApp!=showStore&&ApplicationCatalog.Matches(app,search.Text))otherRunning=true;
    runningAlternative.Visibility=otherRunning&&!String.IsNullOrWhiteSpace(search.Text)?Visibility.Visible:Visibility.Collapsed;
-   runningAlternative.Content="Запущенная версия найдена в "+(showStore?"локальных приложениях":"Microsoft Store")+" →";
-   status.Text=String.IsNullOrWhiteSpace(search.Text)?category+" · приложений: "+total:category+" · найдено: "+list.Items.Count+" из "+total;
+   runningAlternative.Content=L.T("Запущенная версия найдена в ")+(showStore?L.T("локальных приложениях"):"Microsoft Store")+" →";
+   status.Text=String.IsNullOrWhiteSpace(search.Text)?category+L.T(" · приложений: ")+total:category+L.T(" · найдено: ")+list.Items.Count+L.T(" из ")+total;
   }
   private int CountSource(bool store) {int count=0;foreach(var app in programs)if(app.IsStoreApp==store)count++;return count;}
-  private void UpdateSourceCounts() {localTab.Content="Локальные ("+CountSource(false)+")";storeTab.Content="Microsoft Store ("+CountSource(true)+")";}
+  private void UpdateSourceCounts() {localTab.Content=L.T("Локальные (")+CountSource(false)+")";storeTab.Content="Microsoft Store ("+CountSource(true)+")";}
   private void ChangeSource(bool store) {
-   showStore=store;placeholder.Text=store?"Поиск в Microsoft Store…":"Поиск в локальных приложениях…";Filter();
+   showStore=store;placeholder.Text=store?L.T("Поиск в Microsoft Store…"):L.T("Поиск в локальных приложениях…");Filter();
   }
   private static Style SourceTabStyle() {
    var style=new Style(typeof(RadioButton));style.Setters.Add(new Setter(Control.ForegroundProperty,UI.Ink));style.Setters.Add(new Setter(Control.CursorProperty,Cursors.Hand));

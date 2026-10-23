@@ -47,7 +47,7 @@ namespace WheelPicker {
   }
   internal static string Shortcut(Configuration c) {
    var s=new List<string>(); if((c.Modifiers&2)!=0)s.Add("Ctrl"); if((c.Modifiers&1)!=0)s.Add("Alt"); if((c.Modifiers&4)!=0)s.Add("Shift");
-   s.Add(c.Key==192?"~ / Ё":new System.Windows.Input.KeyConverter().ConvertToString(System.Windows.Input.KeyInterop.KeyFromVirtualKey(c.Key))); return String.Join(" + ",s);
+   s.Add(c.Key==192?L.T("~ / Ё"):new System.Windows.Input.KeyConverter().ConvertToString(System.Windows.Input.KeyInterop.KeyFromVirtualKey(c.Key))); return String.Join(" + ",s);
   }
   internal static bool TriggerDown(Configuration c) {return Down(c.Key)&&((c.Modifiers&1)==0||Down(18))&&((c.Modifiers&2)==0||Down(17))&&((c.Modifiers&4)==0||Down(16));}
   internal static bool Down(int k) {return (GetAsyncKeyState(k)&0x8000)!=0;}

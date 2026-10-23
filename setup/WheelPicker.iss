@@ -73,8 +73,10 @@ Source: WheelPicker.exe.config; DestDir: {app}; Flags: ignoreversion
 Source: wheel.ico; DestDir: {app}; Flags: ignoreversion
 Source: LICENSE.txt; DestDir: {app}; Flags: ignoreversion
 Source: README.md; DestDir: {app}; Flags: ignoreversion
+Source: README.en.md; DestDir: {app}; Flags: ignoreversion
 Source: CHANGELOG.md; DestDir: {app}; Flags: ignoreversion
 Source: docs\demo.gif; DestDir: {app}\docs; Flags: ignoreversion
+Source: docs\settings-halloween.png; DestDir: {app}\docs; Flags: ignoreversion
 Source: PowerToysRun\package\Community.PowerToys.Run.Plugin.WheelPicker.dll; DestDir: {#PluginDir}; Tasks: powertoys; Flags: ignoreversion
 Source: PowerToysRun\package\plugin.json; DestDir: {#PluginDir}; Tasks: powertoys; Flags: ignoreversion
 Source: PowerToysRun\package\built-with-powertoys.txt; DestDir: {#PluginDir}; Tasks: powertoys; Flags: ignoreversion
