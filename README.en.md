@@ -6,13 +6,13 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 ![Choose an app, a group, or an open/close action](docs/demo.gif)
 
-## Development branch: English and Halloween
+## Version 1.3: English and Halloween
 
-This branch adds Russian and English interfaces and a **Halloween** theme with small vector pumpkins, bats, and warm accents on familiar Windows 11 surfaces.
+Russian and English interfaces and a **Halloween** theme with small vector pumpkins, bats, and warm accents on familiar Windows 11 surfaces.
 
 In Settings, select **Display language → English** or **Appearance → Halloween**. Changes can be previewed immediately; select **Save changes** to apply them. Closing without saving restores the previous appearance. Your app names, launch commands, and group contents are preserved. Language and theme are included in settings export and import.
 
-These features require a build from `feature/english-halloween`. The published Setup 1.2.0 remains the stable release.
+Language and appearance survive upgrades. See the [changelog](CHANGELOG.md).
 
 ![English interface with the Halloween theme](docs/settings-halloween.png)
 
