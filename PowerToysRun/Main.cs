@@ -5,8 +5,8 @@ using System.IO;
 using System.Reflection;
 using Wox.Plugin;
 [assembly: AssemblyTitle("WheelPicker for PowerToys Run")]
-[assembly: AssemblyVersion("1.0.0.0")]
-[assembly: AssemblyFileVersion("1.0.0.0")]
+[assembly: AssemblyVersion("1.2.0.0")]
+[assembly: AssemblyFileVersion("1.2.0.0")]
 [assembly: System.Runtime.Versioning.TargetFramework(".NETCoreApp,Version=v10.0", FrameworkDisplayName=".NET 10.0")]
 namespace Community.PowerToys.Run.Plugin.WheelPicker {
  public sealed class Main:IPlugin {

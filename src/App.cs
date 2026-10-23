@@ -23,7 +23,7 @@ namespace WheelPicker {
   private RegisteredWaitHandle wheelWait,settingsWait,quitWait;
   private SettingsWindow settings;
   private WheelWindow wheel;
-  private ItemDialog itemDialog;
+  private Window itemDialog;
   private bool itemDialogOpening;
   private DispatcherTimer activationTimer,releaseFallback;
   private KeyReleaseWatch keyRelease;
@@ -87,12 +87,20 @@ namespace WheelPicker {
   }
   internal void LaunchNew(int index) {
    if(index<0||index>=Config.Items.Count)return;
-   try{Process.Start(AppActivation.LaunchInfo(Config.Items[index]));}
+   LaunchNew(Config.Items[index]);
+  }
+  internal void LaunchNew(LaunchItem item) {
+   if(item==null||item.IsGroup)return;
+   try{Process.Start(AppActivation.LaunchInfo(item));}
    catch(Exception e){MessageBox.Show("Не удалось открыть приложение.\n\n"+e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
   }
   internal void CloseItem(int index) {
    if(index<0||index>=Config.Items.Count)return;
-   try{AppActivation.TryClose(Config.Items[index]);}
+   CloseItem(Config.Items[index]);
+  }
+  internal void CloseItem(LaunchItem item) {
+   if(item==null||item.IsGroup)return;
+   try{AppActivation.TryClose(item);}
    catch(Exception e){MessageBox.Show(e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
   }
   internal bool Apply(Configuration next,Window owner) {
@@ -151,12 +159,13 @@ namespace WheelPicker {
    if(FocusItemDialog())return null;
    itemDialogOpening=true;
    try {
-    itemDialog=new ItemDialog(item);if(owner!=null)itemDialog.Owner=owner;
-    return itemDialog.ShowDialog()==true?itemDialog.Result:null;
+    itemDialog=item!=null&&item.IsGroup?(Window)new GroupDialog(item):new ItemDialog(item);if(owner!=null)itemDialog.Owner=owner;
+    if(itemDialog.ShowDialog()!=true)return null;
+    return itemDialog is GroupDialog?((GroupDialog)itemDialog).Result:((ItemDialog)itemDialog).Result;
    } finally {itemDialog=null;itemDialogOpening=false;}
   }
   internal void AddItem() {
-   if(Config.Items.Count>=10) {MessageBox.Show("В колесе уже 10 приложений. Удалите одно в настройках.","WheelPicker"); return;}
+   if(Config.Items.Count>=10) {MessageBox.Show("В колесе уже 10 секторов. Удалите приложение или группу в настройках.","WheelPicker"); return;}
    var result=EditItem(null,null); if(result!=null) {var c=Config.Copy(); c.Items.Add(result); Apply(c,null); if(settings!=null)settings.Reload();}
   }
   internal void Launch(int index) {LaunchNew(index);}

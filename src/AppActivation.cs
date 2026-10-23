@@ -18,6 +18,28 @@ namespace WheelPicker {
   }
  }
  internal static class AppActivation {
+  // Compare the launch destination, not its display name, icon, or arguments.
+  // Different installations remain distinct; shortcuts and executable aliases converge.
+  internal static bool SameApplication(LaunchItem left,LaunchItem right) {
+   if(left==null||right==null||left.IsGroup||right.IsGroup)return false;
+   string a=ApplicationKey(left),b=ApplicationKey(right);
+   return a.Length>0&&String.Equals(a,b,StringComparison.OrdinalIgnoreCase);
+  }
+  internal static bool GroupContains(LaunchItem group,LaunchItem candidate,int exceptIndex) {
+   for(int i=0;i<group.Children.Count;i++)if(i!=exceptIndex&&SameApplication(group.Children[i],candidate))return true;
+   return false;
+  }
+  private static string ApplicationKey(LaunchItem item) {
+   string target=Environment.ExpandEnvironmentVariables((item.Target??"").Trim().Trim('"'));
+   if(target.EndsWith(".lnk",StringComparison.OrdinalIgnoreCase)) {
+    string resolved=ShortcutTarget(target);if(!String.IsNullOrWhiteSpace(resolved))target=Environment.ExpandEnvironmentVariables(resolved.Trim().Trim('"'));
+   }
+   if(ApplicationCatalog.IsShellTarget(target))return target;
+   string executable=ResolveExecutable(target,item.WorkingDirectory);
+   if(!String.IsNullOrEmpty(executable))return executable;
+   try{if(Path.IsPathRooted(target))return Path.GetFullPath(target);}catch(ArgumentException){}catch(NotSupportedException){}catch(IOException){}
+   return target;
+  }
   private delegate bool WindowCallback(IntPtr window,IntPtr parameter);
   [DllImport("user32.dll")] private static extern bool EnumWindows(WindowCallback callback,IntPtr parameter);
   [DllImport("user32.dll")] private static extern bool EnumChildWindows(IntPtr window,WindowCallback callback,IntPtr parameter);

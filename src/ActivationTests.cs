@@ -72,6 +72,7 @@ namespace WheelPicker {
     using(var host=new Host(data,false)) {
      host.Config.Items.Clear();host.Config.Items.Add(item);host.Config.CloseOnRepeat=true;
      var wheel=new WheelWindow(host,false);wheel.Show();
+     wheel.UpdateLayout();SelfTests.Pump();
      var face=(WheelView)((Panel)wheel.Content).Children[0];face.Select(0);
      face.SelectAction(1);
      var point=new System.Windows.Point(260,260-420);

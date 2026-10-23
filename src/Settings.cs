@@ -7,6 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shell;
 namespace WheelPicker {
+ internal enum AppDropPlacement {None,Before,After,IntoGroup}
  internal sealed class SettingsWindow:Window {
   private readonly Host host;
   private Configuration draft;
@@ -20,6 +21,10 @@ namespace WheelPicker {
   private Border forkPreviewHost;
   private Slider activationDelay,forkOutward,forkSide;
   private Border saveToast;
+  private TextBlock notificationTitle,notificationMessage,notificationSymbol;
+  private Canvas dragLayer;
+  private Border dragGhost;
+  private TextBlock dragCaption;
   private System.Windows.Threading.DispatcherTimer toastTimer;
   private ScrollViewer pageScroll;
   internal SettingsWindow(Host h) {
@@ -46,7 +51,7 @@ namespace WheelPicker {
    var sub=UI.Text("Ваш круг приложений",11,UI.Muted);sub.Margin=new Thickness(10,0,0,40);side.Children.Add(sub);
    var page=new StackPanel();
    var overview=UI.Button("◉   Обзор",delegate{page.BringIntoView();});overview.HorizontalContentAlignment=HorizontalAlignment.Left;overview.Background=(Brush)Application.Current.Resources["Tint"];overview.BorderThickness=new Thickness(0);overview.Foreground=UI.Accent;side.Children.Add(overview);
-   var appTitle=UI.Text("Приложения",21,UI.Ink);appTitle.FontWeight=FontWeights.SemiBold;
+   var appTitle=UI.Text("Приложения и группы",21,UI.Ink);appTitle.FontWeight=FontWeights.SemiBold;
    var activationTitle=UI.Text("Как открывать колесо",18,UI.Ink);activationTitle.FontWeight=FontWeights.SemiBold;
    var info=UI.Text("",10,UI.Muted);info.Text="POWERTOYS RUN\nКоманда: wheel\n\nКолесо также работает\nсамостоятельно.";info.Margin=new Thickness(10,64,0,0);info.LineHeight=19;side.Children.Add(info);body.Children.Add(side);
    var right=new Grid{Margin=new Thickness(24,10,28,0)};right.RowDefinitions.Add(new RowDefinition());right.RowDefinitions.Add(new RowDefinition{Height=new GridLength(70)});Grid.SetColumn(right,1);body.Children.Add(right);
@@ -86,17 +91,18 @@ namespace WheelPicker {
    forkPreviewHost=new Border{Height=300,Margin=new Thickness(0,10,0,0),Background=(Brush)Application.Current.Resources["Page"],CornerRadius=new CornerRadius(10),ClipToBounds=true};controls.Children.Add(forkPreviewHost);
    showForkBounds.Checked+=delegate{UpdateForkPreview();};showForkBounds.Unchecked+=delegate{UpdateForkPreview();};forkOutward.ValueChanged+=delegate{UpdateForkPreview();};forkSide.ValueChanged+=delegate{UpdateForkPreview();};UpdateForkPreview();page.Children.Add(UI.Card(controls));
    var help=UI.Text("У открытого приложения выберите действие в ответвлении. Отпускание без выбора действия и Esc отменяют выбор.",11,UI.Muted);help.Margin=new Thickness(0,10,0,28);page.Children.Add(help);
-   var appHeader=new DockPanel{Margin=new Thickness(0,0,0,12)};var add=UI.Button("+  Добавить",Add);DockPanel.SetDock(add,Dock.Right);appHeader.Children.Add(add);appTitle.VerticalAlignment=VerticalAlignment.Center;appHeader.Children.Add(appTitle);page.Children.Add(appHeader);
+   var appHeader=new DockPanel{Margin=new Thickness(0,0,0,12)};var add=UI.Button("+  Добавить",Add);DockPanel.SetDock(add,Dock.Right);appHeader.Children.Add(add);var group=UI.Button("Создать группу",AddGroup);group.Margin=new Thickness(0,0,8,0);DockPanel.SetDock(group,Dock.Right);appHeader.Children.Add(group);appTitle.VerticalAlignment=VerticalAlignment.Center;appHeader.Children.Add(appTitle);page.Children.Add(appHeader);
    apps=new StackPanel();page.Children.Add(apps);RefreshApps();
-   var hint=UI.Text("Перетаскивайте строки за ≡ · ↑ ↓ также меняют порядок · До 10 приложений",11,UI.Muted);hint.Margin=new Thickness(0,10,0,5);page.Children.Add(hint);
+   var hint=UI.Text("Тяните за ≡ · В центр группы — переместить внутрь · К краю строки — изменить порядок",11,UI.Muted);hint.Margin=new Thickness(0,10,0,5);page.Children.Add(hint);
    var backup=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,18,0,12)};
    backup.Children.Add(UI.Button("Экспорт настроек…",Export));var import=UI.Button("Импорт настроек…",Import);import.Margin=new Thickness(8,0,0,0);backup.Children.Add(import);page.Children.Add(backup);
    var footer=new DockPanel{LastChildFill=true,Margin=new Thickness(0,14,0,12)};var save=UI.Button("Сохранить изменения",delegate{Save();});UI.Primary(save);DockPanel.SetDock(save,Dock.Right);footer.Children.Add(save);status=UI.Text("Изменения применяются после сохранения",11,UI.Muted);status.VerticalAlignment=VerticalAlignment.Center;status.Margin=new Thickness(0,0,15,0);footer.Children.Add(status);Grid.SetRow(footer,1);right.Children.Add(footer);
    var toastContent=new StackPanel{Orientation=Orientation.Horizontal};
-   var check=UI.Text("✓",24,UI.Accent);check.VerticalAlignment=VerticalAlignment.Center;check.Margin=new Thickness(0,0,12,0);toastContent.Children.Add(check);
-   var toastText=new StackPanel();var toastTitle=UI.Text("Настройки сохранены",14,UI.Ink);toastTitle.FontWeight=FontWeights.SemiBold;toastText.Children.Add(toastTitle);var toastHint=UI.Text("Изменения применены",12,UI.Muted);toastHint.Margin=new Thickness(0,4,0,0);toastText.Children.Add(toastHint);toastContent.Children.Add(toastText);
+   notificationSymbol=UI.Text("✓",24,UI.Accent);notificationSymbol.VerticalAlignment=VerticalAlignment.Center;notificationSymbol.Margin=new Thickness(0,0,12,0);toastContent.Children.Add(notificationSymbol);
+   var toastText=new StackPanel();notificationTitle=UI.Text("Настройки сохранены",14,UI.Ink);notificationTitle.FontWeight=FontWeights.SemiBold;toastText.Children.Add(notificationTitle);notificationMessage=UI.Text("Изменения применены",12,UI.Muted);notificationMessage.MaxWidth=330;notificationMessage.Margin=new Thickness(0,4,0,0);toastText.Children.Add(notificationMessage);toastContent.Children.Add(toastText);
    saveToast=new Border{Child=toastContent,Background=UI.Surface,BorderBrush=UI.Accent,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(10),Padding=new Thickness(18,13,22,13),HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Top,Margin=new Thickness(0,54,28,0),Visibility=Visibility.Collapsed,IsHitTestVisible=false,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=Colors.Black,Opacity=.18,BlurRadius=18,ShadowDepth=4}};
-   Grid.SetRowSpan(saveToast,2);Panel.SetZIndex(saveToast,100);root.Children.Add(saveToast);Content=root;
+   Grid.SetRowSpan(saveToast,2);Panel.SetZIndex(saveToast,100);root.Children.Add(saveToast);
+   dragLayer=new Canvas{IsHitTestVisible=false};Grid.SetRowSpan(dragLayer,2);Panel.SetZIndex(dragLayer,200);root.Children.Add(dragLayer);Content=root;
   }
   private void UpdateForkPreview() {
    if(forkPreviewHost==null||showForkBounds==null)return;
@@ -106,9 +112,9 @@ namespace WheelPicker {
    var sample=draft.Copy();sample.CloseOnRepeat=true;
    if(sample.Items.Count==0)sample.Items.Add(new LaunchItem{Name="Пример приложения",Target="notepad.exe"});
    var running=new bool[sample.Items.Count];running[0]=true;
-   double radius=338+sample.ForkOutwardPadding+24;
+   double radius=(sample.Items[0].IsGroup?445:338)+sample.ForkOutwardPadding+24;
    var canvas=new Canvas{Width=radius*2,Height=radius*2};
-   var wheel=new WheelView(sample,running);Canvas.SetLeft(wheel,radius-390);Canvas.SetTop(wheel,radius-390);canvas.Children.Add(wheel);wheel.Select(0);
+   var wheel=new WheelView(sample,running,delegate(LaunchItem item){return true;});Canvas.SetLeft(wheel,radius-390);Canvas.SetTop(wheel,radius-390);canvas.Children.Add(wheel);wheel.Select(0);if(sample.Items[0].IsGroup)wheel.SelectGroupChild(0);
    forkPreviewHost.Child=new Viewbox{Child=canvas,Stretch=Stretch.Uniform,IsHitTestVisible=false};
   }
   private Slider PaddingOption(StackPanel panel,string title,int value,int maximum,int step) {
@@ -139,7 +145,11 @@ namespace WheelPicker {
    if(!host.Apply(draft,this))return false;Reload();status.Text="Сохранено · "+Native.Shortcut(host.Config);ShowSavedToast();return true;
   }
   private void ShowSavedToast() {
+   ShowToast("Настройки сохранены","Изменения применены",true);
+  }
+  private void ShowToast(string title,string message,bool saved) {
    if(toastTimer!=null)toastTimer.Stop();
+   notificationTitle.Text=title;notificationMessage.Text=message;notificationSymbol.Text=saved?"✓":"!";
    saveToast.Visibility=Visibility.Visible;
    toastTimer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(3)};
    toastTimer.Tick+=delegate{toastTimer.Stop();saveToast.Visibility=Visibility.Collapsed;};
@@ -173,50 +183,102 @@ namespace WheelPicker {
    if(after)next++;draft.Items.RemoveAt(from);if(from<next)next--;draft.Items.Insert(next,source);
    RefreshApps();RefreshPreview();status.Text="Порядок изменён. Сохраните изменения.";
   }
-  private void EnableDrag(Border card,FrameworkElement grip,LaunchItem item) {
+  internal AppDropPlacement DropPlacement(LaunchItem source,LaunchItem target,double verticalFraction) {
+   if(source==null||target==null||!draft.Items.Contains(source)||!draft.Items.Contains(target)||Object.ReferenceEquals(source,target))return AppDropPlacement.None;
+   if(!source.IsGroup&&target.IsGroup&&verticalFraction>=.22&&verticalFraction<=.78)return AppDropPlacement.IntoGroup;
+   return verticalFraction<.5?AppDropPlacement.Before:AppDropPlacement.After;
+  }
+  internal bool ApplyDrop(LaunchItem source,LaunchItem target,AppDropPlacement placement) {
+   if(DropPlacement(source,target,.5)==AppDropPlacement.None||placement==AppDropPlacement.None)return false;
+   if(placement==AppDropPlacement.IntoGroup) {
+    if(source.IsGroup||!target.IsGroup)return false;
+    if(AppActivation.GroupContains(target,source,-1)){status.Text="Это приложение уже есть в группе. Перенос отменён.";ShowToast("Приложение уже добавлено","В группе «"+target.Name+"» уже есть это приложение.",false);return false;}
+    if(target.Children.Count>=3){status.Text="В группе уже 3 приложения. Перенос отменён.";ShowToast("Группа заполнена","В группе может быть не больше 3 приложений.",false);return false;}
+    target.Children.Add(source);draft.Items.Remove(source);RefreshApps();RefreshPreview();status.Text="«"+source.Name+"» перемещено в «"+target.Name+"». Сохраните изменения.";return true;
+   }
+   Reorder(source,target,placement==AppDropPlacement.After);return true;
+  }
+  private void BeginDragVisual(Border source,LaunchItem item) {
+   var row=new DockPanel();var icon=UI.ItemIcon(item,30);icon.Margin=new Thickness(0,0,12,0);DockPanel.SetDock(icon,Dock.Left);row.Children.Add(icon);
+   var labels=new StackPanel();var title=UI.Text(item.Name,13,UI.Ink);title.FontWeight=FontWeights.SemiBold;title.MaxWidth=290;title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;labels.Children.Add(title);
+   dragCaption=UI.Text("Выберите группу или место в списке",11,UI.Muted);dragCaption.MaxWidth=330;dragCaption.Margin=new Thickness(0,5,0,0);labels.Children.Add(dragCaption);row.Children.Add(labels);
+   dragGhost=new Border{Child=row,Background=UI.Surface,BorderBrush=UI.Accent,BorderThickness=new Thickness(1.5),CornerRadius=new CornerRadius(10),Padding=new Thickness(14,11,18,11),Opacity=.96,IsHitTestVisible=false,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=Colors.Black,Opacity=.25,BlurRadius=18,ShadowDepth=5}};
+   dragLayer.Children.Add(dragGhost);source.Opacity=.35;PositionDragVisual();
+  }
+  private void PositionDragVisual() {
+   if(dragGhost==null||!dragLayer.IsLoaded)return;
+   var cursor=System.Windows.Forms.Cursor.Position;var point=dragLayer.PointFromScreen(new Point(cursor.X,cursor.Y));Canvas.SetLeft(dragGhost,point.X+16);Canvas.SetTop(dragGhost,point.Y+18);
+  }
+  private void EndDragVisual(Border source) {source.Opacity=1;if(dragGhost!=null)dragLayer.Children.Remove(dragGhost);dragGhost=null;dragCaption=null;}
+  internal void ShowDropCue(Border card,TextBlock details,LaunchItem source,LaunchItem target,double fraction) {
+   var placement=DropPlacement(source,target,fraction);
+   if(placement==AppDropPlacement.None){if(dragCaption!=null)dragCaption.Text="Выберите другую строку";return;}
+   card.BorderBrush=UI.Accent;
+   if(placement==AppDropPlacement.IntoGroup) {
+    bool duplicate=AppActivation.GroupContains(target,source,-1),full=target.Children.Count>=3;card.BorderThickness=new Thickness(2.5);card.Background=(Brush)Application.Current.Resources["Tint"];
+    details.Text=duplicate?"Это приложение уже есть в группе":full?"Группа заполнена · 3 / 3":"Отпустите, чтобы переместить «"+source.Name+"» · "+target.Children.Count+" / 3 → "+(target.Children.Count+1)+" / 3";
+    if(dragCaption!=null)dragCaption.Text=duplicate?"Перенос недоступен: приложение уже добавлено":full?"Перенос недоступен: в группе уже 3 приложения":"В группу «"+target.Name+"»";
+   } else {
+    card.Background=UI.Surface;card.BorderThickness=placement==AppDropPlacement.Before?new Thickness(1,3,1,1):new Thickness(1,1,1,3);
+    details.Text=ItemDetails(target);if(dragCaption!=null)dragCaption.Text=(placement==AppDropPlacement.Before?"Перед «":"После «")+target.Name+"»";
+   }
+  }
+  private static string ItemDetails(LaunchItem item) {return !item.IsGroup?item.Target:item.Children.Count==0?"Пустая группа · Перетащите сюда приложение":"Группа · "+String.Join(" · ",item.Children.ConvertAll(child=>child.Name));}
+  private void EnableDrag(Border card,FrameworkElement grip,LaunchItem item,TextBlock details) {
    Point start=new Point();
-   grip.PreviewMouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){start=e.GetPosition(grip);};
+   grip.PreviewMouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){start=e.GetPosition(grip);grip.CaptureMouse();e.Handled=true;};
+   grip.PreviewMouseLeftButtonUp+=delegate{if(Mouse.Captured==grip)grip.ReleaseMouseCapture();};
    grip.PreviewMouseMove+=delegate(object sender,MouseEventArgs e) {
-    if(e.LeftButton!=MouseButtonState.Pressed)return;Point point=e.GetPosition(grip);
+    if(e.LeftButton!=MouseButtonState.Pressed){if(Mouse.Captured==grip)grip.ReleaseMouseCapture();return;}Point point=e.GetPosition(grip);
     if(Math.Abs(point.X-start.X)<SystemParameters.MinimumHorizontalDragDistance && Math.Abs(point.Y-start.Y)<SystemParameters.MinimumVerticalDragDistance)return;
-    DragDrop.DoDragDrop(grip,new DataObject(typeof(LaunchItem),item),DragDropEffects.Move);e.Handled=true;
+    if(Mouse.Captured==grip)grip.ReleaseMouseCapture();
+    var timer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(16)};timer.Tick+=delegate{PositionDragVisual();};
+    BeginDragVisual(card,item);timer.Start();
+    try{DragDrop.DoDragDrop(grip,new DataObject(typeof(LaunchItem),item),DragDropEffects.Move);}finally{timer.Stop();EndDragVisual(card);card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);}e.Handled=true;
    };
    card.AllowDrop=true;
    card.DragOver+=delegate(object sender,DragEventArgs e) {
     var source=e.Data.GetDataPresent(typeof(LaunchItem))?e.Data.GetData(typeof(LaunchItem)) as LaunchItem:null;
-    bool valid=source!=null&&draft.Items.Contains(source)&&!Object.ReferenceEquals(source,item);
+    bool valid=DropPlacement(source,item,.5)!=AppDropPlacement.None;
     e.Effects=valid?DragDropEffects.Move:DragDropEffects.None;e.Handled=true;
     if(valid) {
-     bool after=e.GetPosition(card).Y>card.ActualHeight/2;card.BorderBrush=UI.Accent;card.BorderThickness=after?new Thickness(1,1,1,3):new Thickness(1,3,1,1);
+     ShowDropCue(card,details,source,item,e.GetPosition(card).Y/Math.Max(1,card.ActualHeight));PositionDragVisual();
      if(pageScroll!=null){double y=e.GetPosition(pageScroll).Y;if(y<45)pageScroll.ScrollToVerticalOffset(pageScroll.VerticalOffset-16);else if(y>pageScroll.ActualHeight-45)pageScroll.ScrollToVerticalOffset(pageScroll.VerticalOffset+16);}
     }
    };
-   card.DragLeave+=delegate{card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);};
+   card.DragLeave+=delegate{card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);if(dragCaption!=null)dragCaption.Text="Выберите группу или место в списке";};
    card.Drop+=delegate(object sender,DragEventArgs e) {
     var source=e.Data.GetDataPresent(typeof(LaunchItem))?e.Data.GetData(typeof(LaunchItem)) as LaunchItem:null;
-    bool after=e.GetPosition(card).Y>card.ActualHeight/2;card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);
-    if(source!=null)Reorder(source,item,after);e.Handled=true;
+    var placement=DropPlacement(source,item,e.GetPosition(card).Y/Math.Max(1,card.ActualHeight));card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);
+    e.Effects=ApplyDrop(source,item,placement)?DragDropEffects.Move:DragDropEffects.None;e.Handled=true;
    };
   }
-  private void RefreshPreview() {var crop=new Canvas{Width=520,Height=520,ClipToBounds=true};var wheel=new WheelView(draft);Canvas.SetLeft(wheel,-130);Canvas.SetTop(wheel,-130);crop.Children.Add(wheel);previewHost.Child=new Viewbox{Child=crop,Stretch=Stretch.Uniform};}
+  private void RefreshPreview() {
+   var crop=new Canvas{Width=520,Height=520,ClipToBounds=true};var wheel=new WheelView(draft);Canvas.SetLeft(wheel,-130);Canvas.SetTop(wheel,-130);crop.Children.Add(wheel);
+   crop.Measure(new Size(520,520));crop.Arrange(new Rect(0,0,520,520));crop.UpdateLayout();
+   var snapshot=new System.Windows.Media.Imaging.RenderTargetBitmap(520,520,96,96,PixelFormats.Pbgra32);snapshot.Render(crop);snapshot.Freeze();
+   previewHost.IsHitTestVisible=false;previewHost.Focusable=false;
+   previewHost.Child=new Image{Source=snapshot,Stretch=Stretch.Uniform,Focusable=false};
+  }
   private void RefreshApps() {
    apps.Children.Clear();
    for(int i=0;i<draft.Items.Count;i++) {
     int at=i;var item=draft.Items[i];var row=new Grid();row.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(46)});row.ColumnDefinitions.Add(new ColumnDefinition());row.ColumnDefinitions.Add(new ColumnDefinition{Width=GridLength.Auto});
-    var grip=new Grid{Cursor=Cursors.SizeAll,ToolTip="Перетащить приложение"};
+    var grip=new Grid{Background=Brushes.Transparent,Cursor=Cursors.SizeAll,ToolTip="Перетащить приложение"};
     var icon=UI.ItemIcon(item,26);icon.HorizontalAlignment=HorizontalAlignment.Right;grip.Children.Add(icon);var handle=UI.Text("≡",13,UI.Muted);handle.HorizontalAlignment=HorizontalAlignment.Left;handle.VerticalAlignment=VerticalAlignment.Center;grip.Children.Add(handle);row.Children.Add(grip);
-    var name=new StackPanel{VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,8,0)};name.Children.Add(UI.Text(item.Name,13,UI.Ink));var path=UI.Text(item.Target,10,UI.Muted);path.TextWrapping=TextWrapping.NoWrap;path.TextTrimming=TextTrimming.CharacterEllipsis;path.Margin=new Thickness(0,4,0,0);name.Children.Add(path);Grid.SetColumn(name,1);row.Children.Add(name);
+    var name=new StackPanel{VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(0,0,8,0)};name.Children.Add(UI.Text(item.Name,13,UI.Ink));var path=UI.Text(ItemDetails(item),10,UI.Muted);path.TextWrapping=TextWrapping.NoWrap;path.TextTrimming=TextTrimming.CharacterEllipsis;path.Margin=new Thickness(0,4,0,0);name.Children.Add(path);Grid.SetColumn(name,1);row.Children.Add(name);
     var actions=new StackPanel{Orientation=Orientation.Horizontal,VerticalAlignment=VerticalAlignment.Center};
     var up=UI.Button("↑",delegate{Move(at,-1);});up.IsEnabled=i>0;up.ToolTip="Раньше в колесе";actions.Children.Add(up);
     var down=UI.Button("↓",delegate{Move(at,1);});down.IsEnabled=i<draft.Items.Count-1;down.ToolTip="Позже в колесе";actions.Children.Add(down);
     var edit=UI.Button("Изменить",delegate{Edit(at);});edit.Margin=new Thickness(6,0,0,0);actions.Children.Add(edit);
     var remove=UI.Button("×",delegate{draft.Items.RemoveAt(at);RefreshApps();RefreshPreview();status.Text="Приложение убрано. Нажмите «Сохранить изменения».";});remove.Margin=new Thickness(6,0,0,0);remove.ToolTip="Убрать из колеса";actions.Children.Add(remove);Grid.SetColumn(actions,2);row.Children.Add(actions);
-    var card=UI.Card(row);card.Padding=new Thickness(14,10,14,10);card.Margin=new Thickness(0,0,0,6);EnableDrag(card,grip,item);apps.Children.Add(card);
+    var card=UI.Card(row);card.Padding=new Thickness(14,10,14,10);card.Margin=new Thickness(0,0,0,6);EnableDrag(card,grip,item,path);apps.Children.Add(card);
    }
    if(draft.Items.Count==0){var empty=UI.Text("Здесь появятся ваши приложения. Нажмите «Добавить».",13,UI.Muted);empty.Margin=new Thickness(15);apps.Children.Add(UI.Card(empty));}
   }
   private void Move(int at,int delta) {int next=at+delta;if(next<0||next>=draft.Items.Count)return;var item=draft.Items[at];draft.Items.RemoveAt(at);draft.Items.Insert(next,item);RefreshApps();RefreshPreview();status.Text="Порядок изменён. Сохраните изменения.";}
-  private void Add() {if(draft.Items.Count>=10){status.Text="В колесе уже 10 приложений.";return;}var result=host.EditItem(null,this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text="Приложение добавлено. Сохраните изменения.";}}
+  private void Add() {if(draft.Items.Count>=10){status.Text="В колесе уже 10 секторов.";return;}var result=host.EditItem(null,this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text="Приложение добавлено. Сохраните изменения.";}}
+  private void AddGroup() {if(draft.Items.Count>=10){status.Text="В колесе уже 10 секторов.";return;}var result=host.EditItem(new LaunchItem{Children=new System.Collections.Generic.List<LaunchItem>()},this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text="Группа добавлена. Сохраните изменения.";}}
   private void Edit(int at) {var result=host.EditItem(draft.Items[at],this);if(result!=null){draft.Items[at]=result;RefreshApps();RefreshPreview();status.Text="Приложение изменено. Сохраните изменения.";}}
  }
  internal sealed class ItemDialog:Window {

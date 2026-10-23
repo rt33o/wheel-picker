@@ -1,6 +1,6 @@
 param(
  [string]$CompilerPath,
- [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.1.0',
+ [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.2.0',
  [string]$OutputDirectory = (Split-Path $PSScriptRoot),
  [ValidatePattern('^[\w.-]+$')][string]$OutputBaseName = 'Setup',
  [string]$TestRoot
@@ -19,7 +19,7 @@ if (!$CompilerPath) {
  }
 }
 if (!$CompilerPath -or !(Test-Path -LiteralPath $CompilerPath)) { throw 'Install Inno Setup 6.7.3 or newer, or pass -CompilerPath to ISCC.exe.' }
-$required = @('WheelPicker.exe','WheelPicker.exe.config','wheel.ico','LICENSE.txt','README.md','PowerToysRun\package\Community.PowerToys.Run.Plugin.WheelPicker.dll','PowerToysRun\package\plugin.json','PowerToysRun\package\built-with-powertoys.txt','PowerToysRun\package\Images\wheel.png')
+$required = @('WheelPicker.exe','WheelPicker.exe.config','wheel.ico','LICENSE.txt','README.md','CHANGELOG.md','docs\demo.gif','PowerToysRun\package\Community.PowerToys.Run.Plugin.WheelPicker.dll','PowerToysRun\package\plugin.json','PowerToysRun\package\built-with-powertoys.txt','PowerToysRun\package\Images\wheel.png')
 foreach ($file in $required) { if (!(Test-Path -LiteralPath (Join-Path $PSScriptRoot $file))) { throw "Missing payload: $file. Run Build.ps1 first." } }
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Force -Path $OutputDirectory | Out-Null

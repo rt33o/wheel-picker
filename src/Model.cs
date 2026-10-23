@@ -10,7 +10,9 @@ namespace WheelPicker {
   [DataMember] public string Arguments {get;set;}
   [DataMember] public string WorkingDirectory {get;set;}
   [DataMember(EmitDefaultValue=false)] public string IconTarget {get;set;}
-  public LaunchItem Copy() {return (LaunchItem)MemberwiseClone();}
+  [DataMember(EmitDefaultValue=false)] public List<LaunchItem> Children {get;set;}
+  public bool IsGroup {get{return Children!=null;}}
+  public LaunchItem Copy() {var copy=(LaunchItem)MemberwiseClone();if(Children!=null)copy.Children=Children.ConvertAll(i=>i.Copy());return copy;}
  }
  [DataContract] public sealed class Configuration {
   [DataMember] public int Version=1;
@@ -31,10 +33,16 @@ namespace WheelPicker {
   public void Validate() {
    if(ForkOutwardPadding<0||ForkOutwardPadding>300||ForkSidePadding<0||ForkSidePadding>180)throw new InvalidDataException("Запас форка: снаружи от 0 до 300, по бокам от 0 до 180 px.");
    if(ActivationDelayMs<0||ActivationDelayMs>1000)throw new InvalidDataException("Задержка должна быть от 0 до 1000 мс.");
-   if(Version!=1) throw new InvalidDataException("Неизвестная версия настроек.");
-   if(Items==null || Items.Count>10) throw new InvalidDataException("В колесе может быть до 10 приложений.");
+   if(Version!=1&&Version!=2) throw new InvalidDataException("Неизвестная версия настроек.");
+   if(Items==null || Items.Count>10) throw new InvalidDataException("В колесе может быть до 10 приложений или групп.");
    if(Key<1 || Key>254 || Key==123 || (Modifiers&~7u)!=0) throw new InvalidDataException("Выберите клавишу или сочетание без Win. F12 зарезервирована Windows.");
-   foreach(var i in Items) if(i==null || String.IsNullOrWhiteSpace(i.Name) || String.IsNullOrWhiteSpace(i.Target)) throw new InvalidDataException("У каждого приложения должны быть название и путь.");
+   foreach(var i in Items) {
+    if(i==null||String.IsNullOrWhiteSpace(i.Name))throw new InvalidDataException("У каждого приложения или группы должно быть название.");
+    if(i.IsGroup) {
+     if(i.Children.Count>3)throw new InvalidDataException("В группе может быть не больше 3 приложений.");
+     foreach(var child in i.Children)if(child==null||child.IsGroup||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException("В группе разрешены только приложения с названием и путём. Вложенные группы не поддерживаются.");
+    } else if(String.IsNullOrWhiteSpace(i.Target))throw new InvalidDataException("У каждого приложения должны быть название и путь.");
+   }
   }
   public static Configuration Defaults() {
    var c=new Configuration();
@@ -49,7 +57,7 @@ namespace WheelPicker {
    using(var s=File.OpenRead(path)) {var c=(Configuration)new DataContractJsonSerializer(typeof(Configuration)).ReadObject(s); c.Validate(); return c;}
   }
   public void Save(string path) {
-   Validate(); Directory.CreateDirectory(Path.GetDirectoryName(path)); string temp=path+".tmp";
+   Validate();Version=Items.Exists(i=>i.IsGroup)?2:1; Directory.CreateDirectory(Path.GetDirectoryName(path)); string temp=path+".tmp";
    try {using(var s=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)) {new DataContractJsonSerializer(typeof(Configuration)).WriteObject(s,this); s.Flush(true);}
     if(File.Exists(path)) File.Replace(temp,path,path+".bak"); else File.Move(temp,path);
    } finally {if(File.Exists(temp)) File.Delete(temp);}

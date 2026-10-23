@@ -18,6 +18,7 @@ Run-Setup $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS="start
 $app = Join-Path $fixture 'App\WheelPicker.exe'
 $settingsPath = Join-Path $fixture 'Data\settings.json'
 Assert (Test-Path -LiteralPath $app) 'Application installed into isolated per-user directory'
+Assert ((Test-Path -LiteralPath (Join-Path $fixture 'App\docs\demo.gif')) -and (Test-Path -LiteralPath (Join-Path $fixture 'App\CHANGELOG.md'))) 'Offline documentation includes demo and changelog'
 Assert (Test-Path -LiteralPath (Join-Path $fixture 'App\unins000.exe')) 'Uninstaller is present'
 Assert ((Get-FileHash -LiteralPath $app).Hash -eq (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'WheelPicker.exe')).Hash) 'Installed EXE matches payload'
 Assert (Test-Path -LiteralPath $registryKey) 'Registered in per-user Installed Apps'
@@ -40,10 +41,13 @@ try {
  [Runtime.InteropServices.Marshal]::FinalReleaseComObject($shell) | Out-Null
 }
 $settings.Key=86; $settings.Modifiers=3; $settings.Items[0].Name='Проверка 🚀'; $settings.ShowForkBounds=$true
+$settings.Version=2
+$settings.Items += [pscustomobject]@{Name='Группа 🚀';Children=@([pscustomobject]@{Name='Блокнот';Target='notepad.exe';Arguments='';WorkingDirectory='';IconTarget=$null})}
 $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $settingsPath -Encoding utf8
 Run-Setup $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS="powertoys"',('/LOG="'+(Join-Path $testRoot 'upgrade.log')+'"'))
 $updated = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($updated.Key -eq 86 -and $updated.Modifiers -eq 3 -and $updated.Items[0].Name -eq 'Проверка 🚀' -and $updated.ShowForkBounds) 'Upgrade preserves shortcut, Unicode apps and preferences'
+Assert ($updated.Version -eq 2 -and $updated.Items[-1].Name -eq 'Группа 🚀' -and $updated.Items[-1].Children[0].Target -eq 'notepad.exe') 'Upgrade preserves groups and their members'
 Assert ($updated.AutoStart -eq $false) 'Upgrade applies disabled startup preference'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Startup\WheelPicker.lnk'))) 'Upgrade removes unchecked startup shortcut'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Desktop\WheelPicker.lnk'))) 'Upgrade removes unchecked desktop shortcut'

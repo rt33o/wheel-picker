@@ -50,6 +50,8 @@ namespace WheelPicker {
    checks+=HotkeyTests.Run(data);
    checks+=ForkToleranceTests.Run(data);
    checks+=BoundsTests.Run(data);
+   checks+=GroupTests.Run(data);
+   checks+=GroupDragTests.Run(data);
    File.WriteAllText(Path.Combine(data,"test-results.txt"),"PASS: "+checks+" checks\r\nPersistence, Unicode, atomic replacement, backup, validation, isolation and radial selection.\r\n");
   }
   private static void RunLifecycleTests(string data) {
@@ -198,7 +200,7 @@ namespace WheelPicker {
    branch.Select(selected);branch.SelectAction(0);
    RenderElement(root,size,size,file);
   }
-  private static void RenderElement(FrameworkElement element,int width,int height,string file,bool background=false) {
+  internal static void RenderElement(FrameworkElement element,int width,int height,string file,bool background=false) {
    element.Measure(new Size(width,height));element.Arrange(new Rect(0,0,width,height));element.UpdateLayout();
    var bitmap=new RenderTargetBitmap(width,height,96,96,PixelFormats.Pbgra32);
    if(background){var layer=new DrawingVisual();using(var context=layer.RenderOpen())context.DrawRectangle((Brush)Application.Current.Resources["Page"],null,new Rect(0,0,width,height));bitmap.Render(layer);}

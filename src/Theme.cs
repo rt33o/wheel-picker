@@ -51,6 +51,13 @@ namespace WheelPicker {
   internal static Button Button(string t,Action action) {var b=new Button{Content=t}; b.Click+=delegate{action();}; return b;}
   internal static Border Card(UIElement content) {return new Border{Background=Surface,BorderBrush=Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(12),Padding=new Thickness(20),Child=content};}
   internal static FrameworkElement ItemIcon(LaunchItem item,double size) {
+   if(item.IsGroup) {
+    var icons=new Grid{Width=size,Height=size,ToolTip="Группа приложений"};
+    icons.Children.Add(new Border{Background=(Brush)Application.Current.Resources["Tint"],CornerRadius=new CornerRadius(size/5)});
+    for(int i=0;i<Math.Min(3,item.Children.Count);i++){var child=ItemIcon(item.Children[i],size*.53);child.HorizontalAlignment=i==1?HorizontalAlignment.Right:HorizontalAlignment.Left;child.VerticalAlignment=i==2?VerticalAlignment.Bottom:VerticalAlignment.Top;icons.Children.Add(child);}
+    if(item.Children.Count==0)icons.Children.Add(new TextBlock{Text="▦",Foreground=Accent,FontSize=size*.7,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center});
+    return icons;
+   }
    var icon=Native.Icon(item.IconTarget??item.Target)??Native.Icon(item.Target); if(icon!=null) return new Image{Source=icon,Width=size,Height=size,Stretch=Stretch.Uniform};
    return new Border{Width=size,Height=size,CornerRadius=new CornerRadius(8),Background=(Brush)Application.Current.Resources["Tint"],Child=new TextBlock{Text=item.Name.Substring(0,1).ToUpperInvariant(),Foreground=Accent,FontSize=size*.55,FontWeight=FontWeights.SemiBold,HorizontalAlignment=HorizontalAlignment.Center,VerticalAlignment=VerticalAlignment.Center}};
   }
