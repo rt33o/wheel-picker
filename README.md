@@ -63,6 +63,8 @@
 
 ## Сборка
 
+Работа в отдельных чатах и worktree, карта исходников и выпуск версий описаны в [DEVELOPMENT.md](DEVELOPMENT.md). Общие инструкции для Codex находятся в [AGENTS.md](AGENTS.md).
+
 Исходники написаны на C# / WPF для .NET Framework 4.8. Скрипты используют системный компилятор Windows, без .NET SDK и сторонних библиотек.
 
 ```powershell
