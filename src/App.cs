@@ -91,6 +91,13 @@ namespace WheelPicker {
    try{Process.Start(AppActivation.LaunchInfo(item));}
    catch(Exception e){MessageBox.Show(L.T("Не удалось открыть приложение.\n\n")+e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
   }
+  private IDisposable pendingCommand;
+  internal event Action<bool> CommandCompleted;
+  internal void InsertCommand(LaunchItem item,CommandDestination target) {
+   string error;if(item==null||!item.IsCommand||!Commands.ValidateText(item.Target,out error))return;
+   if(pendingCommand!=null)pendingCommand.Dispose();
+   pendingCommand=Commands.BeginInsert(item.Target,target,Config.Key,delegate(bool success){if(CommandCompleted!=null){CommandCompleted(success);return;}if(!success)MessageBox.Show(L.T("Не удалось вставить команду в исходное окно. Верните фокус в нужное поле и попробуйте снова. Для окна от администратора нужны такие же права у WheelPicker."),"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);});
+  }
   internal void CloseItem(int index) {
    if(index<0||index>=Config.Items.Count)return;
    CloseItem(Config.Items[index]);
@@ -122,6 +129,7 @@ namespace WheelPicker {
    } catch(Exception e) {if(owner!=null)MessageBox.Show(owner,e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning); else MessageBox.Show(e.Message,"WheelPicker"); return false;}
   }
   internal void OpenSettings() {
+   if(pendingCommand!=null){pendingCommand.Dispose();pendingCommand=null;}
    if(FocusItemDialog())return;
    CancelActivation();
    if(wheel!=null) wheel.Dismiss();
@@ -135,6 +143,7 @@ namespace WheelPicker {
    menu.Items.Add(L.T("Открыть колесо"),null,delegate{Dispatch(delegate{OpenWheel(false);});});menu.Items.Add(L.T("Настройки"),null,delegate{Dispatch(OpenSettings);});menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add(L.T("Выход"),null,delegate{Dispatch(delegate{Application.Current.Shutdown();});});tray.ContextMenuStrip=menu;if(old!=null)old.Dispose();
   }
   internal void OpenWheel(bool hotkey) {
+   if(pendingCommand!=null){pendingCommand.Dispose();pendingCommand=null;}
    if(FocusItemDialog())return;
    if(wheelOpening)return;
    if(wheel!=null) {wheel.Dismiss(); return;}
@@ -171,6 +180,7 @@ namespace WheelPicker {
   }
   internal void Launch(int index) {LaunchNew(index);}
   public void Dispose() {
+   if(pendingCommand!=null)pendingCommand.Dispose();
    CancelActivation();ReleaseHotkey();if(keyRelease!=null)keyRelease.Dispose();
    if(wheelWait!=null)wheelWait.Unregister(null); if(settingsWait!=null)settingsWait.Unregister(null); if(quitWait!=null)quitWait.Unregister(null);
    if(tray!=null){tray.Visible=false; tray.Dispose();}if(trayIcon!=null)trayIcon.Dispose();
@@ -190,7 +200,7 @@ namespace WheelPicker {
      var config=Configuration.Load(Path.Combine(data,"settings.json"));config.AutoStart=args[startupOption+1]=="on";config.Save(Path.Combine(data,"settings.json"));return 0;
     }
     if(Array.IndexOf(args,"--install")>=0)return Installer.Run();
-    if(Array.IndexOf(args,"--self-test")>=0) {SelfTests.Run(data);return 0;}
+    if(Array.IndexOf(args,"--self-test")>=0) {CommandTests.NativeInputEnabled=Array.IndexOf(args,"--native-input")>=0;SelfTests.Run(data);return 0;}
     if(Array.IndexOf(args,"--render-preview")>=0) {SelfTests.Render(data);return 0;}
     string instance;
     using(var hash=SHA256.Create())instance="Local\\WheelPicker."+WindowsIdentity.GetCurrent().User.Value+"."+BitConverter.ToString(hash.ComputeHash(Encoding.UTF8.GetBytes(data.ToUpperInvariant()))).Replace("-","").Substring(0,16);

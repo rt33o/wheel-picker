@@ -6,6 +6,10 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 ![Choose an app, a group, or an open/close action](docs/demo.gif)
 
+## Version 1.5: command groups
+
+A dedicated **Command group** holds up to **10 commands**, such as `.venv\Scripts\Activate.ps1`. Picking one types its text into the original active window **without Enter** and preserves your clipboard. Edit, reorder, drag commands into groups, and include them in settings backups. Duplicate commands and full groups show a notification; app groups still hold up to 3 apps.
+
 ## Version 1.4: website links and icons
 
 Choose **Item type → Website link** in the add dialog to open Notion, Google Drive, or any web page in your default browser. Links support groups, drag and drop, and settings backups. Website icons load in the background and are cached locally; private pages can use a custom PNG, ICO or JPG.
@@ -31,6 +35,7 @@ PowerToys is optional. If you install the PowerToys Run adapter, restart PowerTo
 - Hold **~ / `**, point at an app, and release. Configure another key or shortcut in Settings. Center and Esc cancel; click mode is also available.
 - A dot indicates a running app. Outer actions open another instance or request that its windows close. File Explorer can open a new folder window or close all folder windows.
 - Create groups of up to three apps. Drag existing entries into a group or add apps in the group editor. Duplicate members are rejected.
+- Create a **Command group** for up to **10 commands**, such as `.venv\Scripts\Activate.ps1` or `git status`. Each command has a name and literal text. Picking it types into the field that was active before the wheel opened, **without Enter**, process execution, or changing the clipboard. Edit, reorder, drag existing commands into a group, and include them in settings backups. Duplicate entries and full groups show a notification. App groups still allow up to three apps.
 - Choose installed desktop or Microsoft Store apps, or browse to a file or shortcut.
 - Select **Item type → Website link** in the add dialog to add Notion, Google Drive, or any specific web page. Addresses without a scheme receive `https://`; a blank name uses the website domain. Links open in your default browser and support groups and settings export.
 - Website icons load in the background and are cached locally. In the link editor, choose a custom PNG, ICO or JPG, or return to Automatic. Custom icons are included in settings backups and are useful for private Notion pages whose icon requires sign-in. WheelPicker does not use browser passwords or cookies.

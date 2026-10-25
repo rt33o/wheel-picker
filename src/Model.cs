@@ -11,9 +11,15 @@ namespace WheelPicker {
   [DataMember] public string WorkingDirectory {get;set;}
   [DataMember(EmitDefaultValue=false)] public string IconTarget {get;set;}
   [DataMember(EmitDefaultValue=false)] public string WebIconData {get;set;}
+  [DataMember(EmitDefaultValue=false)] public string Kind {get;set;}
   [DataMember(EmitDefaultValue=false)] public List<LaunchItem> Children {get;set;}
   public bool IsGroup {get{return Children!=null;}}
-  public bool IsWebLink {get{return !IsGroup&&WebLinks.HasScheme(Target);}}
+  public bool IsCommandGroup {get{return IsGroup&&Kind=="commands";}}
+  public bool IsCommand {get{return !IsGroup&&Kind=="command";}}
+  public bool IsWebLink {get{return !IsGroup&&!IsCommand&&WebLinks.HasScheme(Target);}}
+  public int GroupLimit {get{return IsCommandGroup?10:3;}}
+  public bool Accepts(LaunchItem item) {return IsGroup&&item!=null&&!item.IsGroup&&IsCommandGroup==item.IsCommand;}
+  public string GroupLimitMessage {get{return IsCommandGroup?L.T("В группе может быть не больше 10 команд."):L.T("В группе может быть не больше 3 приложений.");}}
   public LaunchItem Copy() {var copy=(LaunchItem)MemberwiseClone();if(Children!=null)copy.Children=Children.ConvertAll(i=>i.Copy());return copy;}
  }
  [DataContract] public sealed class Configuration {
@@ -38,17 +44,22 @@ namespace WheelPicker {
    if(Language!="ru"&&Language!="en")throw new InvalidDataException(L.T("Неизвестный язык интерфейса."));
    if(ForkOutwardPadding<0||ForkOutwardPadding>300||ForkSidePadding<0||ForkSidePadding>180)throw new InvalidDataException(L.T("Запас форка: снаружи от 0 до 300, по бокам от 0 до 180 px."));
    if(ActivationDelayMs<0||ActivationDelayMs>1000)throw new InvalidDataException(L.T("Задержка должна быть от 0 до 1000 мс."));
-   if(Version!=1&&Version!=2) throw new InvalidDataException(L.T("Неизвестная версия настроек."));
+   if(Version!=1&&Version!=2&&Version!=3) throw new InvalidDataException(L.T("Неизвестная версия настроек."));
    if(Items==null || Items.Count>10) throw new InvalidDataException(L.T("В колесе может быть до 10 приложений или групп."));
    if(Key<1 || Key>254 || Key==123 || (Modifiers&~7u)!=0) throw new InvalidDataException(L.T("Выберите клавишу или сочетание без Win. F12 зарезервирована Windows."));
    foreach(var i in Items) {
     if(i==null||String.IsNullOrWhiteSpace(i.Name))throw new InvalidDataException(L.T("У каждого приложения или группы должно быть название."));
+    ValidateKind(i);
     if(i.IsGroup) {
-     if(i.Children.Count>3)throw new InvalidDataException(L.T("В группе может быть не больше 3 приложений."));
-     foreach(var child in i.Children){if(child==null||child.IsGroup||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException(L.T("В группе разрешены только приложения с названием и путём. Вложенные группы не поддерживаются."));ValidateLink(child);}
+     if(i.Children.Count>i.GroupLimit)throw new InvalidDataException(i.GroupLimitMessage);
+     foreach(var child in i.Children){if(!i.Accepts(child)||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException(L.T("Группа команд принимает только команды, группа приложений — приложения и ссылки. Вложенные группы не поддерживаются."));ValidateKind(child);ValidateLink(child);}
     } else if(String.IsNullOrWhiteSpace(i.Target))throw new InvalidDataException(L.T("У каждого приложения должны быть название и путь."));
     ValidateLink(i);
    }
+  }
+  private static void ValidateKind(LaunchItem item) {
+   if((!String.IsNullOrEmpty(item.Kind)&&item.Kind!="command"&&item.Kind!="commands")||(item.Kind=="command"&&item.IsGroup)||(item.Kind=="commands"&&!item.IsGroup))throw new InvalidDataException(L.T("Неизвестный тип элемента."));
+   if(item.IsCommand){string error;if(!Commands.ValidateText(item.Target,out error))throw new InvalidDataException(error);}
   }
   private static void ValidateLink(LaunchItem item){string normalized;if(item.IsWebLink&&!WebLinks.TryNormalize(item.Target,false,out normalized))throw new InvalidDataException(L.T("Некорректная веб-ссылка. Используйте адрес http:// или https://."));if(item.WebIconData!=null&&item.WebIconData.Length>200000)throw new InvalidDataException(L.T("Слишком большой значок ссылки."));}
   public static Configuration Defaults() {
@@ -64,7 +75,7 @@ namespace WheelPicker {
    using(var s=File.OpenRead(path)) {var c=(Configuration)new DataContractJsonSerializer(typeof(Configuration)).ReadObject(s); c.Validate(); return c;}
   }
   public void Save(string path) {
-   Validate();Version=Items.Exists(i=>i.IsGroup)?2:1; Directory.CreateDirectory(Path.GetDirectoryName(path)); string temp=path+".tmp";
+   Validate();Version=Items.Exists(i=>i.IsCommand||i.IsCommandGroup)?3:Items.Exists(i=>i.IsGroup)?2:1; Directory.CreateDirectory(Path.GetDirectoryName(path)); string temp=path+".tmp";
    try {using(var s=new FileStream(temp,FileMode.Create,FileAccess.Write,FileShare.None)) {new DataContractJsonSerializer(typeof(Configuration)).WriteObject(s,this); s.Flush(true);}
     if(File.Exists(path)) File.Replace(temp,path,path+".bak"); else File.Move(temp,path);
    } finally {if(File.Exists(temp)) File.Delete(temp);}

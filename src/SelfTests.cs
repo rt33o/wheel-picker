@@ -56,6 +56,7 @@ namespace WheelPicker {
    checks+=AppearanceTests.Run(data);
    checks+=WebLinkTests.Run(data);
    checks+=WebIconTests.Run(data);
+   checks+=CommandTests.Run(data);
    File.WriteAllText(Path.Combine(data,"test-results.txt"),"PASS: "+checks+" checks\r\nPersistence, Unicode, atomic replacement, backup, validation, isolation and radial selection.\r\n");
   }
   private static void RunLifecycleTests(string data) {

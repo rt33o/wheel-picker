@@ -17,16 +17,16 @@ namespace WheelPicker {
   internal int Selected=-1,SelectedAction=-1;
   internal Path BoundsOverlay {get;private set;}
   internal LaunchItem SelectedItem {get{return Selected<0?null:group.Children[Selected];}}
-  internal bool HasBranch {get{return Selected>=0&&!SelectedItem.IsWebLink&&running[Selected]&&config.CloseOnRepeat;}}
+  internal bool HasBranch {get{return Selected>=0&&!SelectedItem.IsWebLink&&!SelectedItem.IsCommand&&running[Selected]&&config.CloseOnRepeat;}}
   internal event Action Changed;
   internal event Action Pick;
   internal GroupBranch(Configuration c,LaunchItem item,double angle,double parentSpan,bool[] opened) {
-   config=c;group=item;anchor=angle;span=Math.Min(160,Math.Max(parentSpan,group.Children.Count*34));running=opened;Width=780;Height=780;
+   config=c;group=item;anchor=angle;span=Math.Min(group.IsCommandGroup?280:160,Math.Max(parentSpan,group.Children.Count*(group.IsCommandGroup?28:34)));running=(bool[])opened.Clone();for(int i=0;i<running.Length;i++)if(group.Children[i].IsCommand)running[i]=false;Width=780;Height=780;
    Children.Add(items);Children.Add(fork);shapes=new Path[group.Children.Count];
    double step=span/Math.Max(1,group.Children.Count);
    for(int i=0;i<group.Children.Count;i++) {
     int at=i;var geometry=WheelView.Sector(242,338,anchor-span/2+i*step,step);
-    var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),Cursor=System.Windows.Input.Cursors.Hand};
+    var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),Cursor=System.Windows.Input.Cursors.Hand,ToolTip=group.Children[i].IsCommand?group.Children[i].Name+"\n"+group.Children[i].Target:group.Children[i].Name};
     shape.MouseLeftButtonUp+=delegate{Select(at);if(Pick!=null)Pick();};shapes[i]=shape;items.Children.Add(shape);
     var content=new StackPanel{Width=Math.Min(112,Math.Max(54,2*290*Math.Sin(step*Math.PI/360)*.85)),IsHitTestVisible=false};
     var icon=new Grid{Width=32,Height=28};icon.Children.Add(UI.ItemIcon(group.Children[i],25));

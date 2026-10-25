@@ -97,7 +97,7 @@ namespace WheelPicker {
    forkPreviewHost=new Border{Height=300,Margin=new Thickness(0,10,0,0),Background=(Brush)Application.Current.Resources["Page"],CornerRadius=new CornerRadius(10),ClipToBounds=true};controls.Children.Add(forkPreviewHost);
    showForkBounds.Checked+=delegate{UpdateForkPreview();};showForkBounds.Unchecked+=delegate{UpdateForkPreview();};forkOutward.ValueChanged+=delegate{UpdateForkPreview();};forkSide.ValueChanged+=delegate{UpdateForkPreview();};UpdateForkPreview();page.Children.Add(UI.Card(controls));
    var help=UI.Text(L.T("У открытого приложения выберите действие в ответвлении. Отпускание без выбора действия и Esc отменяют выбор."),11,UI.Muted);help.Margin=new Thickness(0,10,0,28);page.Children.Add(help);
-   var appHeader=new DockPanel{Margin=new Thickness(0,0,0,12)};var add=UI.Button(L.T("+  Добавить"),Add);DockPanel.SetDock(add,Dock.Right);appHeader.Children.Add(add);var group=UI.Button(L.T("Создать группу"),AddGroup);group.Margin=new Thickness(0,0,8,0);DockPanel.SetDock(group,Dock.Right);appHeader.Children.Add(group);appTitle.VerticalAlignment=VerticalAlignment.Center;appHeader.Children.Add(appTitle);page.Children.Add(appHeader);
+   var appHeader=new DockPanel{Margin=new Thickness(0,0,0,12)};var add=UI.Button(L.T("+  Добавить"),Add);DockPanel.SetDock(add,Dock.Right);appHeader.Children.Add(add);var group=UI.Button(L.T("Создать группу"),AddGroup);group.Margin=new Thickness(0,0,8,0);DockPanel.SetDock(group,Dock.Right);appHeader.Children.Add(group);var commands=UI.Button(L.T("Группа команд"),delegate{AddGroup(true);});commands.Margin=new Thickness(0,0,8,0);DockPanel.SetDock(commands,Dock.Right);appHeader.Children.Add(commands);appTitle.VerticalAlignment=VerticalAlignment.Center;appHeader.Children.Add(appTitle);page.Children.Add(appHeader);
    apps=new StackPanel();page.Children.Add(apps);RefreshApps();
    var hint=UI.Text(L.T("Тяните за ≡ · В центр группы — переместить внутрь · К краю строки — изменить порядок"),11,UI.Muted);hint.Margin=new Thickness(0,10,0,5);page.Children.Add(hint);
    var backup=new StackPanel{Orientation=Orientation.Horizontal,Margin=new Thickness(0,18,0,12)};
@@ -208,8 +208,10 @@ namespace WheelPicker {
    if(DropPlacement(source,target,.5)==AppDropPlacement.None||placement==AppDropPlacement.None)return false;
    if(placement==AppDropPlacement.IntoGroup) {
     if(source.IsGroup||!target.IsGroup)return false;
+    if(!target.Accepts(source)){ShowToast(L.T("Другой тип группы"),L.T("Выберите группу соответствующего типа: команды или приложения."),false);return false;}
+    if(source.IsCommand&&AppActivation.GroupContains(target,source,-1)){ShowToast(L.T("Команда уже добавлена"),L.T("Эта команда уже есть в группе."),false);return false;}
     if(AppActivation.GroupContains(target,source,-1)){status.Text=source.IsWebLink?L.T("Эта ссылка уже есть в группе. Перенос отменён."):L.T("Это приложение уже есть в группе. Перенос отменён.");ShowToast(source.IsWebLink?L.T("Ссылка уже добавлена"):L.T("Приложение уже добавлено"),L.T("В группе «")+target.Name+(source.IsWebLink?L.T("» уже есть эта ссылка."):L.T("» уже есть это приложение.")),false);return false;}
-    if(target.Children.Count>=3){status.Text=L.T("В группе уже 3 приложения. Перенос отменён.");ShowToast(L.T("Группа заполнена"),L.T("В группе может быть не больше 3 приложений."),false);return false;}
+    if(target.Children.Count>=target.GroupLimit){status.Text=target.GroupLimitMessage;ShowToast(L.T("Группа заполнена"),target.GroupLimitMessage,false);return false;}
     target.Children.Add(source);draft.Items.Remove(source);RefreshApps();RefreshPreview();status.Text="«"+source.Name+L.T("» перемещено в «")+target.Name+L.T("». Сохраните изменения.");return true;
    }
    Reorder(source,target,placement==AppDropPlacement.After);return true;
@@ -231,15 +233,15 @@ namespace WheelPicker {
    if(placement==AppDropPlacement.None){if(dragCaption!=null)dragCaption.Text=L.T("Выберите другую строку");return;}
    card.BorderBrush=UI.Accent;
    if(placement==AppDropPlacement.IntoGroup) {
-    bool duplicate=AppActivation.GroupContains(target,source,-1),full=target.Children.Count>=3;card.BorderThickness=new Thickness(2.5);card.Background=(Brush)Application.Current.Resources["Tint"];
-    details.Text=duplicate?(source.IsWebLink?L.T("Эта ссылка уже есть в группе."):L.T("Это приложение уже есть в группе")):full?L.T("Группа заполнена · 3 / 3"):L.T("Отпустите, чтобы переместить «")+source.Name+"» · "+target.Children.Count+" / 3 → "+(target.Children.Count+1)+" / 3";
-    if(dragCaption!=null)dragCaption.Text=duplicate?L.T("Перенос недоступен: приложение уже добавлено"):full?L.T("Перенос недоступен: в группе уже 3 приложения"):L.T("В группу «")+target.Name+"»";
+    bool duplicate=AppActivation.GroupContains(target,source,-1),full=target.Children.Count>=target.GroupLimit;card.BorderThickness=new Thickness(2.5);card.Background=(Brush)Application.Current.Resources["Tint"];
+    details.Text=!target.Accepts(source)?L.T("Выберите группу соответствующего типа: команды или приложения."):duplicate?(source.IsCommand?L.T("Эта команда уже есть в группе."):source.IsWebLink?L.T("Эта ссылка уже есть в группе."):L.T("Это приложение уже есть в группе")):full?target.GroupLimitMessage:L.T("Отпустите, чтобы переместить «")+source.Name+"» · "+target.Children.Count+" / "+target.GroupLimit+" → "+(target.Children.Count+1)+" / "+target.GroupLimit;
+    if(dragCaption!=null)dragCaption.Text=!target.Accepts(source)||duplicate||full?details.Text:L.T("В группу «")+target.Name+"»";
    } else {
     card.Background=UI.Surface;card.BorderThickness=placement==AppDropPlacement.Before?new Thickness(1,3,1,1):new Thickness(1,1,1,3);
     details.Text=ItemDetails(target);if(dragCaption!=null)dragCaption.Text=(placement==AppDropPlacement.Before?L.T("Перед «"):L.T("После «"))+target.Name+"»";
    }
   }
-  private static string ItemDetails(LaunchItem item) {return !item.IsGroup?item.Target:item.Children.Count==0?L.T("Пустая группа · Перетащите сюда приложение"):L.T("Группа · ")+String.Join(" · ",item.Children.ConvertAll(child=>child.Name));}
+  private static string ItemDetails(LaunchItem item) {return !item.IsGroup?item.Target:item.Children.Count==0?(item.IsCommandGroup?L.T("Пустая группа команд · до 10 команд"):L.T("Пустая группа · Перетащите сюда приложение")):(item.IsCommandGroup?L.T("Команды · "):L.T("Группа · "))+String.Join(" · ",item.Children.ConvertAll(child=>child.Name));}
   private void EnableDrag(Border card,FrameworkElement grip,LaunchItem item,TextBlock details) {
    Point start=new Point();
    grip.PreviewMouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){start=e.GetPosition(grip);grip.CaptureMouse();e.Handled=true;};
@@ -294,7 +296,8 @@ namespace WheelPicker {
   }
   private void Move(int at,int delta) {int next=at+delta;if(next<0||next>=draft.Items.Count)return;var item=draft.Items[at];draft.Items.RemoveAt(at);draft.Items.Insert(next,item);RefreshApps();RefreshPreview();status.Text=L.T("Порядок изменён. Сохраните изменения.");}
   private void Add() {if(draft.Items.Count>=10){status.Text=L.T("В колесе уже 10 секторов.");return;}var result=host.EditItem(null,this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text=L.T("Приложение добавлено. Сохраните изменения.");}}
-  private void AddGroup() {if(draft.Items.Count>=10){status.Text=L.T("В колесе уже 10 секторов.");return;}var result=host.EditItem(new LaunchItem{Children=new System.Collections.Generic.List<LaunchItem>()},this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text=L.T("Группа добавлена. Сохраните изменения.");}}
+  private void AddGroup() {AddGroup(false);}
+  private void AddGroup(bool commands) {if(draft.Items.Count>=10){status.Text=L.T("В колесе уже 10 секторов.");return;}var result=host.EditItem(new LaunchItem{Kind=commands?"commands":null,Children=new System.Collections.Generic.List<LaunchItem>()},this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text=L.T("Группа добавлена. Сохраните изменения.");}}
   private void Edit(int at) {var result=host.EditItem(draft.Items[at],this);if(result!=null){draft.Items[at]=result;RefreshApps();RefreshPreview();status.Text=L.T("Приложение изменено. Сохраните изменения.");}}
  }
  internal sealed class ItemDialog:Window {
@@ -311,13 +314,14 @@ namespace WheelPicker {
   private string webIconData;
   private string iconTarget;
   private bool applyingProgram;
-  internal ItemDialog(LaunchItem item) {
+  internal ItemDialog(LaunchItem item):this(item,false,false) {}
+  internal ItemDialog(LaunchItem item,bool commandOnly,bool appsOnly) {
    UI.ApplyWindowTheme(this);editing=item!=null;iconTarget=item==null?null:item.IconTarget;webIconData=item==null?null:item.WebIconData;
    Title=item==null?L.T("Добавить приложение"):L.T("Изменить приложение");Width=640;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;ShowInTaskbar=false;
    var panel=new StackPanel{Margin=new Thickness(26)};
    heading=UI.Text(Title,24,UI.Ink);heading.FontWeight=FontWeights.SemiBold;panel.Children.Add(heading);
-   var desc=UI.Text(L.T("Добавьте приложение или ссылку на сайт, например Notion или Google Drive."),12,UI.Muted);desc.Margin=new Thickness(0,8,0,16);panel.Children.Add(desc);
-   var typeRow=new DockPanel{Margin=new Thickness(0,0,0,4)};entryType=new ComboBox{ItemsSource=new[]{L.T("Приложение"),L.T("Ссылка")},SelectedIndex=item!=null&&item.IsWebLink?1:0,Width=220};DockPanel.SetDock(entryType,Dock.Right);typeRow.Children.Add(entryType);var typeLabel=UI.Text(L.T("Тип элемента"),12,UI.Muted);typeLabel.VerticalAlignment=VerticalAlignment.Center;typeRow.Children.Add(typeLabel);System.Windows.Automation.AutomationProperties.SetName(entryType,L.T("Тип элемента"));panel.Children.Add(typeRow);
+   var desc=UI.Text(L.T("Добавьте приложение, ссылку на сайт или команду для вставки с клавиатуры."),12,UI.Muted);desc.Margin=new Thickness(0,8,0,16);panel.Children.Add(desc);
+   var typeRow=new DockPanel{Margin=new Thickness(0,0,0,4)};entryType=new ComboBox{ItemsSource=appsOnly?new[]{L.T("Приложение"),L.T("Ссылка")}:new[]{L.T("Приложение"),L.T("Ссылка"),L.T("Команда")},SelectedIndex=commandOnly||item!=null&&item.IsCommand?2:item!=null&&item.IsWebLink?1:0,Width=220,IsEnabled=!commandOnly};DockPanel.SetDock(entryType,Dock.Right);typeRow.Children.Add(entryType);var typeLabel=UI.Text(L.T("Тип элемента"),12,UI.Muted);typeLabel.VerticalAlignment=VerticalAlignment.Center;typeRow.Children.Add(typeLabel);System.Windows.Automation.AutomationProperties.SetName(entryType,L.T("Тип элемента"));panel.Children.Add(typeRow);
    name=Field(panel,L.T("Название"),item==null?"":item.Name);
    targetLabel=UI.Text(L.T("Программа или ярлык"),11,UI.Muted);targetLabel.Margin=new Thickness(0,12,0,6);panel.Children.Add(targetLabel);
    var browseRow=new DockPanel();fileButton=UI.Button(L.T("Файл…"),BrowseFile);fileButton.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(fileButton,Dock.Right);browseRow.Children.Add(fileButton);browse=UI.Button(L.T("Обзор…"),Browse);browse.ToolTip=L.T("Выбрать из установленных приложений");browse.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(browse,Dock.Right);browseRow.Children.Add(browse);target=new TextBox{Text=item==null?"":item.Target};browseRow.Children.Add(target);panel.Children.Add(browseRow);
@@ -331,7 +335,7 @@ namespace WheelPicker {
    workdir=Field(panel,L.T("Рабочая папка (необязательно)"),item==null?"":item.WorkingDirectory,out workdirLabel);
    validation=UI.Text("",12,UI.Accent);validation.Margin=new Thickness(0,10,0,0);validation.Visibility=Visibility.Collapsed;panel.Children.Add(validation);
    entryType.SelectionChanged+=delegate{UpdateEntryType();};
-   target.TextChanged+=delegate{if(!applyingProgram){iconTarget=null;string normalized;if(WebLinks.HasScheme(target.Text)&&WebLinks.TryNormalize(target.Text,false,out normalized))entryType.SelectedIndex=1;}validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();};UpdateEntryType();
+   target.TextChanged+=delegate{if(!applyingProgram){iconTarget=null;string normalized;if(entryType.SelectedIndex!=2&&WebLinks.HasScheme(target.Text)&&WebLinks.TryNormalize(target.Text,false,out normalized))entryType.SelectedIndex=1;}validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();};UpdateEntryType();
    var buttons=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(0,24,0,0)};
    var cancel=UI.Button(L.T("Отмена"),delegate{DialogResult=false;});cancel.IsCancel=true;buttons.Children.Add(cancel);
    var save=UI.Button(item==null?L.T("Добавить"):L.T("Готово"),Save);UI.Primary(save);save.Margin=new Thickness(8,0,0,0);save.IsDefault=true;buttons.Children.Add(save);panel.Children.Add(buttons);Content=panel;Loaded+=delegate{name.Focus();};Closed+=delegate{if(iconPreviewTimer!=null)iconPreviewTimer.Stop();};
@@ -339,11 +343,12 @@ namespace WheelPicker {
   private TextBox Field(StackPanel p,string label,string value){TextBlock unused;return Field(p,label,value,out unused);}
   private TextBox Field(StackPanel p,string label,string value,out TextBlock l) {l=UI.Text(label,11,UI.Muted);l.Margin=new Thickness(0,12,0,6);p.Children.Add(l);var t=new TextBox{Text=value??""};p.Children.Add(t);return t;}
   private void UpdateEntryType() {
-   bool link=entryType.SelectedIndex==1;Height=link?580:600;
-   Title=heading.Text=link?(editing?L.T("Изменить ссылку"):L.T("Добавить ссылку")):(editing?L.T("Изменить приложение"):L.T("Добавить приложение"));
-   targetLabel.Text=link?L.T("Адрес сайта"):L.T("Программа или ярлык");
-   browse.Visibility=fileButton.Visibility=arguments.Visibility=argumentsLabel.Visibility=workdir.Visibility=workdirLabel.Visibility=link?Visibility.Collapsed:Visibility.Visible;
-   webIconRow.Visibility=linkHelp.Visibility=link?Visibility.Visible:Visibility.Collapsed;validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();
+   bool link=entryType.SelectedIndex==1,command=entryType.SelectedIndex==2;Height=command?450:link?580:600;
+   Title=heading.Text=command?(editing?L.T("Изменить команду"):L.T("Добавить команду")):link?(editing?L.T("Изменить ссылку"):L.T("Добавить ссылку")):(editing?L.T("Изменить приложение"):L.T("Добавить приложение"));
+   targetLabel.Text=command?L.T("Текст команды"):link?L.T("Адрес сайта"):L.T("Программа или ярлык");target.MaxLength=command?Commands.MaximumLength:0;
+   browse.Visibility=fileButton.Visibility=arguments.Visibility=argumentsLabel.Visibility=workdir.Visibility=workdirLabel.Visibility=link||command?Visibility.Collapsed:Visibility.Visible;
+   webIconRow.Visibility=link?Visibility.Visible:Visibility.Collapsed;linkHelp.Visibility=link||command?Visibility.Visible:Visibility.Collapsed;
+   linkHelp.Text=command?L.T("Текст вставляется в исходное активное окно без Enter. Например: .venv\\Scripts\\Activate.ps1. Буфер обмена не изменяется."):L.T("Откроется в браузере по умолчанию. Можно вставить адрес без https://. Если название не указано, используем домен сайта.");validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();
   }
   private void ScheduleWebIcon(){if(iconPreviewTimer!=null)iconPreviewTimer.Stop();if(entryType.SelectedIndex!=1)return;iconPreviewTimer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(600)};iconPreviewTimer.Tick+=delegate{iconPreviewTimer.Stop();RefreshWebIcon();};iconPreviewTimer.Start();webIconStatus.Text=String.IsNullOrEmpty(webIconData)?L.T("Автоматически с сайта · для личной страницы можно выбрать свой значок."):L.T("Свой значок · сохраняется вместе с настройками.");if(webIconPreview.Child==null)webIconPreview.Child=WebLinks.Icon(32);}
   private void RefreshWebIcon(){string address;webIconPreview.Child=WebLinks.TryNormalize(target.Text,true,out address)?WebIcons.Element(new LaunchItem{Target=address,WebIconData=webIconData},32):WebLinks.Icon(32);webIconStatus.Text=String.IsNullOrEmpty(webIconData)?L.T("Автоматически с сайта · для личной страницы можно выбрать свой значок."):L.T("Свой значок · сохраняется вместе с настройками.");}
@@ -367,6 +372,7 @@ namespace WheelPicker {
   }
   private void BrowseFile() {var d=new Microsoft.Win32.OpenFileDialog{Title=L.T("Выберите программу или ярлык"),Filter=L.T("Программы и ярлыки|*.exe;*.lnk;*.url;*.bat;*.cmd|Все файлы|*.*"),CheckFileExists=true,DereferenceLinks=false};if(d.ShowDialog(this)==true){target.Text=d.FileName;if(String.IsNullOrWhiteSpace(name.Text))name.Text=Path.GetFileNameWithoutExtension(d.FileName);}}
   private void Save() {
+   if(entryType.SelectedIndex==2){LaunchItem command;string error;if(!Commands.TryCreate(name.Text,target.Text,out command,out error)){validation.Text=error;validation.Visibility=Visibility.Visible;target.Focus();return;}Result=command;DialogResult=true;return;}
    if(entryType.SelectedIndex==1||WebLinks.HasScheme(target.Text)) {
     LaunchItem item;string error;if(!WebLinks.TryCreate(name.Text,target.Text,out item,out error)){validation.Text=error;validation.Visibility=Visibility.Visible;target.Focus();return;}
     item.WebIconData=webIconData;Result=item;DialogResult=true;return;

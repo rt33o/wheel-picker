@@ -55,6 +55,7 @@ namespace WheelPicker {
   internal static Button Button(string t,Action action) {var b=new Button{Content=t}; b.Click+=delegate{action();}; return b;}
   internal static Border Card(UIElement content) {return new Border{Background=Surface,BorderBrush=Line,BorderThickness=new Thickness(1),CornerRadius=new CornerRadius(12),Padding=new Thickness(20),Child=content};}
   internal static FrameworkElement ItemIcon(LaunchItem item,double size) {
+   if(item.IsCommand||item.IsCommandGroup)return Commands.Icon(size);
    if(item.IsWebLink)return WebIcons.Element(item,size);
    if(item.IsGroup) {
     var icons=new Grid{Width=size,Height=size,ToolTip=L.T("Группа приложений")};

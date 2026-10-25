@@ -39,8 +39,8 @@ namespace WheelPicker {
   internal WheelView(Configuration c,bool[] opened,Func<LaunchItem,bool> runningProbe) {
    running=opened==null?new bool[c.Items.Count]:(bool[])opened.Clone();branchable=new bool[c.Items.Count];explorer=new bool[c.Items.Count];
    for(int i=0;i<branchable.Length;i++) {
-    if(c.Items[i].IsWebLink){if(i<running.Length)running[i]=false;continue;}
-    if(c.Items[i].IsGroup){var states=new bool[c.Items[i].Children.Count];for(int j=0;j<states.Length;j++){states[j]=!c.Items[i].Children[j].IsWebLink&&runningProbe!=null&&runningProbe(c.Items[i].Children[j]);if(states[j]&&i<running.Length)running[i]=true;}groupOpened[c.Items[i]]=states;continue;}
+    if(c.Items[i].IsWebLink||c.Items[i].IsCommand){if(i<running.Length)running[i]=false;continue;}
+    if(c.Items[i].IsGroup){if(i<running.Length)running[i]=false;var states=new bool[c.Items[i].Children.Count];for(int j=0;j<states.Length;j++){states[j]=!c.Items[i].Children[j].IsWebLink&&!c.Items[i].Children[j].IsCommand&&runningProbe!=null&&runningProbe(c.Items[i].Children[j]);if(states[j]&&i<running.Length)running[i]=true;}groupOpened[c.Items[i]]=states;continue;}
     branchable[i]=i<running.Length&&running[i];if(branchable[i])explorer[i]=AppActivation.Resolve(c.Items[i]).Explorer;
    }
    config=c;ReleaseMode=c.HoldToSelect; Width=780; Height=780; Background=Brushes.Transparent;
@@ -90,6 +90,7 @@ namespace WheelPicker {
    ShowBranch();
    if(HasGroup){SyncGroupSelection();return;}
    hint.Text=HasBranch?L.T("Выберите действие ↗"):index<0?L.T("Наведите курсор"):index==config.Items.Count?L.T("Добавить в колесо"):ReleaseMode?L.T("Отпустите клавишу"):config.CloseOnRepeat?L.T("Нажмите для выбора"):L.T("Нажмите для запуска");
+   if(SelectedItem!=null&&SelectedItem.IsCommand)hint.Text=ReleaseMode?L.T("Отпустите — вставить"):L.T("Нажмите — вставить");
   }
   internal void UpdatePointer(double x,double y) {
    if(HasGroup&&groupBranch!=null) {
@@ -196,7 +197,7 @@ namespace WheelPicker {
   private void SyncGroupSelection() {
    SelectedAction=groupBranch.SelectedAction;title.Text=groupBranch.SelectedItem==null?config.Items[Selected].Name:groupBranch.SelectedItem.Name;
    if(config.Items[Selected].Children.Count==0){hint.Text=L.T("Группа пуста\nДобавьте в настройках");return;}
-   hint.Text=groupBranch.SelectedItem==null?L.T("Выберите приложение ↗"):HasBranch?(SelectedAction<0?L.T("Выберите действие"):(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==0?L.T("открыть"):L.T("закрыть"))):(ReleaseMode?L.T("Отпустите — открыть"):L.T("Нажмите — открыть"));
+   hint.Text=groupBranch.SelectedItem==null?(config.Items[Selected].IsCommandGroup?L.T("Выберите команду ↗"):L.T("Выберите приложение ↗")):groupBranch.SelectedItem.IsCommand?(ReleaseMode?L.T("Отпустите — вставить"):L.T("Нажмите — вставить")):HasBranch?(SelectedAction<0?L.T("Выберите действие"):(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==0?L.T("открыть"):L.T("закрыть"))):(ReleaseMode?L.T("Отпустите — открыть"):L.T("Нажмите — открыть"));
   }
   internal void SelectGroupChild(int child) {if(HasGroup&&groupBranch!=null)groupBranch.Select(child);}
   internal Point GroupItemPoint(int child) {return groupBranch.ItemPoint(child);}
@@ -210,6 +211,7 @@ namespace WheelPicker {
   }
  }
  internal sealed class WheelWindow:Window {
+  private readonly CommandDestination commandDestination;
   private readonly Host host;
   private readonly WheelView view;
   private readonly DispatcherTimer hold;
@@ -217,9 +219,10 @@ namespace WheelPicker {
   private Action afterClose;
   internal bool IsDismissing {get{return dismissing;}}
   internal WheelWindow(Host h,bool fromHotkey) {
+   commandDestination=Commands.Capture();
    UI.ApplyWindowTheme(this);host=h;Title=L.T("WheelPicker — колесо");Width=900;Height=930;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=new SolidColorBrush(Color.FromArgb(1,0,0,0));Topmost=true;ShowInTaskbar=false;
    var opened=new bool[h.Config.Items.Count];
-   for(int i=0;i<opened.Length;i++)opened[i]=!h.Config.Items[i].IsGroup&&AppActivation.IsRunning(h.Config.Items[i]);
+   for(int i=0;i<opened.Length;i++)opened[i]=!h.Config.Items[i].IsGroup&&!h.Config.Items[i].IsCommand&&!h.Config.Items[i].IsWebLink&&AppActivation.IsRunning(h.Config.Items[i]);
    var root=new Canvas();view=new WheelView(h.Config,opened,AppActivation.IsRunning){ReleaseMode=fromHotkey && h.Config.HoldToSelect};root.Children.Add(view);
    var tip=UI.Text(L.T("Esc — закрыть     ·     ← → — выбор     ·     Enter — выбрать"),11,UI.Muted);tip.HorizontalAlignment=HorizontalAlignment.Center;root.Children.Add(tip);Content=root;
    view.Pick+=delegate(int index){if(dismissing)return;if(view.ReleaseMode)view.Select(index);else Choose(index);};view.Settings+=delegate{Finish(h.OpenSettings);};
@@ -289,6 +292,7 @@ namespace WheelPicker {
    if(index!=view.Selected)view.Select(index);
    if(view.HasGroup&&view.SelectedItem==null){if(view.ReleaseMode)Dismiss();return;}
    var item=view.SelectedItem;
+   if(item!=null&&item.IsCommand){Finish(delegate{host.InsertCommand(item,commandDestination);});return;}
    if(view.HasBranch) {
     if(view.SelectedAction<0){if(view.ReleaseMode)Dismiss();return;}
     Finish(view.SelectedAction==0?(Action)delegate{host.LaunchNew(item);}:delegate{host.CloseItem(item);});
