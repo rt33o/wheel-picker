@@ -47,11 +47,12 @@ $settings | Add-Member -NotePropertyName Halloween -NotePropertyValue $true -For
 $settings | Add-Member -NotePropertyName ShowOrbitCat -NotePropertyValue $false -Force
 $settings | Add-Member -NotePropertyName OrbitCatSpeed -NotePropertyValue 2.25 -Force
 $settings | Add-Member -NotePropertyName OrbitPet -NotePropertyValue 'cat' -Force
+$settings.Items[0] | Add-Member -NotePropertyName RepeatLaunch -NotePropertyValue 'hide' -Force
 $settings.Version=3
 $commandGroup=[pscustomobject]@{Name='Команды 🚀';Kind='commands';Children=@()}
 for($commandIndex=0;$commandIndex -lt 10;$commandIndex++){$commandGroup.Children += [pscustomobject]@{Name=('Команда '+$commandIndex);Kind='command';Target=('.venv\Scripts\Activate.ps1 # '+$commandIndex);Arguments='';WorkingDirectory=''}}
 $settings.Items += $commandGroup
-$settings.Items += [pscustomobject]@{Name='Группа 🚀';Children=@([pscustomobject]@{Name='Блокнот';Target='notepad.exe';Arguments='';WorkingDirectory='';IconTarget=$null})}
+$settings.Items += [pscustomobject]@{Name='Группа 🚀';Children=@([pscustomobject]@{Name='Блокнот';Target='notepad.exe';Arguments='';WorkingDirectory='';IconTarget=$null;RepeatLaunch='allow'})}
 $iconData=[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'PowerToysRun\wheel.png')))
 $webLink=[pscustomobject]@{Name='Notion';Target='https://www.notion.so/example?page=A#section';Arguments='';WorkingDirectory='';WebIconData=$iconData}
 $settings.Items[-1].Children += $webLink
@@ -69,6 +70,8 @@ Assert ($updated.Language -eq 'en' -and $updated.Halloween) 'Upgrade preserves E
 Assert ($updated.ShowOrbitCat -eq $false) 'Upgrade preserves disabled cat preference'
 Assert ($updated.OrbitCatSpeed -eq 2.25) 'Upgrade preserves custom cat running speed'
 Assert ($updated.OrbitPet -eq 'cat' -and $updated.Halloween) 'Upgrade preserves explicit cat choice in Halloween theme'
+Assert ($updated.Items[0].RepeatLaunch -eq 'hide') 'Upgrade preserves hidden repeat action on a root app'
+Assert ($updated.Items[-2].Children[0].RepeatLaunch -eq 'allow') 'Upgrade preserves explicit repeat action inside a group'
 Assert ($updated.AutoStart -eq $false) 'Upgrade applies disabled startup preference'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Startup\WheelPicker.lnk'))) 'Upgrade removes unchecked startup shortcut'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Desktop\WheelPicker.lnk'))) 'Upgrade removes unchecked desktop shortcut'
@@ -87,6 +90,7 @@ Assert (Test-Path -LiteralPath $settingsPath) 'Uninstall preserves user settings
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Key -eq 86) 'Preserved settings retain custom shortcut'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-2].Children[1].WebIconData -eq $iconData) 'Uninstall preserves website icon backups'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-3].Children.Count -eq 10) 'Uninstall preserves all ten commands'
+Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[0].RepeatLaunch -eq 'hide') 'Uninstall preserves per-app repeat-launch preference'
 Assert ((Test-Path -LiteralPath (Join-Path $fixture 'App\user-file.txt')) -and (Test-Path -LiteralPath (Join-Path $fixture 'Plugin\user-file.txt'))) 'Uninstall leaves unrelated files untouched'
 # Compile the same script with absent-PowerToys detection to exercise standalone install.
 $standalone = Join-Path $testRoot 'Без PowerToys'
