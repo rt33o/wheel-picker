@@ -8,11 +8,11 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 A 24-second tour of the current UI: app actions, groups, website icons, up to 10 commands typed without Enter, settings, and English/Halloween. The demo uses sample data; text insertion is illustrated in a sample input field.
 
-## In development: create groups by dragging
+## Version 1.6.2: create groups by dragging
 
 In **Apps and groups**, drag a row by its icon, name, path, or empty space onto the center of another single item to open **Create group** with both selected items. Edit, delete, and arrow buttons retain normal click behavior. Choose its name and members, then select **Done**. The group replaces the target; other rows retain their order. Cancelling the editor leaves the original list unchanged; items excluded from the new group remain as singles. Select **Save changes** to apply the result to the wheel.
 
-Apps, files, and links can share a group; two commands create a command group. Duplicates and nested groups are blocked. Dropping into existing groups or at row edges retains its previous behavior. The sidebar footer now shows only the version. These changes are available in source and local builds for the upcoming 1.6.2.
+Apps, files, and links can share a group; two commands create a command group. Duplicates and nested groups are blocked. Dropping into existing groups or at row edges retains its previous behavior. The sidebar footer now shows only the version.
 
 ## Version 1.6.1: new app icon
 
