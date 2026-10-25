@@ -92,6 +92,7 @@ namespace WheelPicker {
    catch(Exception e){MessageBox.Show(L.T("Не удалось открыть приложение.\n\n")+e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
   }
   private IDisposable pendingCommand;
+  private IDisposable pendingFocus;
   internal event Action<bool> CommandCompleted;
   internal void InsertCommand(LaunchItem item,CommandDestination target) {
    string error;if(item==null||!item.IsCommand||!Commands.ValidateText(item.Target,out error))return;
@@ -101,6 +102,21 @@ namespace WheelPicker {
   internal void CloseItem(int index) {
    if(index<0||index>=Config.Items.Count)return;
    CloseItem(Config.Items[index]);
+  }
+  internal void FocusItem(LaunchItem item) {
+   if(item==null||item.IsGroup||item.IsWebLink||item.IsCommand||FocusItemDialog())return;
+   if(pendingFocus!=null){pendingFocus.Dispose();pendingFocus=null;}
+   try {
+    var opened=AppActivation.OpenWindows(item);OpenAppWindow target;
+    if(opened.Count==0){MessageBox.Show(L.T("Открытых окон больше нет."),"WheelPicker");return;}
+    if(opened.Count==1)target=opened[0];
+    else {
+     itemDialogOpening=true;
+     try {var picker=new WindowPicker(item,opened);itemDialog=picker;if(picker.ShowDialog()!=true)return;target=picker.Result;}
+     finally{itemDialog=null;itemDialogOpening=false;}
+    }
+    pendingFocus=new WindowFocusRequest(item,target,delegate(bool success){var request=pendingFocus as WindowFocusRequest;pendingFocus=null;if(!success&&(request==null||!request.Cancelled))MessageBox.Show(L.T("Не удалось переключиться на окно. Оно могло закрыться, либо Windows отклонила переключение."),"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Information);});
+   }catch(Exception e){MessageBox.Show(e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning);}
   }
   internal void CloseItem(LaunchItem item) {
    if(item==null||item.IsGroup)return;
@@ -129,6 +145,7 @@ namespace WheelPicker {
    } catch(Exception e) {if(owner!=null)MessageBox.Show(owner,e.Message,"WheelPicker",MessageBoxButton.OK,MessageBoxImage.Warning); else MessageBox.Show(e.Message,"WheelPicker"); return false;}
   }
   internal void OpenSettings() {
+   if(pendingFocus!=null){pendingFocus.Dispose();pendingFocus=null;}
    if(pendingCommand!=null){pendingCommand.Dispose();pendingCommand=null;}
    if(FocusItemDialog())return;
    CancelActivation();
@@ -143,6 +160,7 @@ namespace WheelPicker {
    menu.Items.Add(L.T("Открыть колесо"),null,delegate{Dispatch(delegate{OpenWheel(false);});});menu.Items.Add(L.T("Настройки"),null,delegate{Dispatch(OpenSettings);});menu.Items.Add(new Forms.ToolStripSeparator());menu.Items.Add(L.T("Выход"),null,delegate{Dispatch(delegate{Application.Current.Shutdown();});});tray.ContextMenuStrip=menu;if(old!=null)old.Dispose();
   }
   internal void OpenWheel(bool hotkey) {
+   if(pendingFocus!=null){pendingFocus.Dispose();pendingFocus=null;}
    if(pendingCommand!=null){pendingCommand.Dispose();pendingCommand=null;}
    if(FocusItemDialog())return;
    if(wheelOpening)return;
@@ -180,6 +198,7 @@ namespace WheelPicker {
   }
   internal void Launch(int index) {LaunchNew(index);}
   public void Dispose() {
+   if(pendingFocus!=null)pendingFocus.Dispose();
    if(pendingCommand!=null)pendingCommand.Dispose();
    CancelActivation();ReleaseHotkey();if(keyRelease!=null)keyRelease.Dispose();
    if(wheelWait!=null)wheelWait.Unregister(null); if(settingsWait!=null)settingsWait.Unregister(null); if(quitWait!=null)quitWait.Unregister(null);

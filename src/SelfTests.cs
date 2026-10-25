@@ -60,6 +60,9 @@ namespace WheelPicker {
    checks+=CatTests.Run(data);
    checks+=PetTests.Run(data);
    checks+=SettingsNavigationTests.Run(data);
+   checks+=WindowFocusUndoTests.Run(data);
+   checks+=VersionedAppTests.Run(data);
+   checks+=RepeatLaunchTests.Run(data);
    File.WriteAllText(Path.Combine(data,"test-results.txt"),"PASS: "+checks+" checks\r\nPersistence, Unicode, atomic replacement, backup, validation, isolation and radial selection.\r\n");
   }
   private static void RunLifecycleTests(string data) {
