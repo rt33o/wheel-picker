@@ -56,6 +56,8 @@ Closing sends a normal window-close request, allowing an app to ask you to save 
 
 ## Build and test
 
+See [DEVELOPMENT.md](DEVELOPMENT.md) for source layout, isolated chats and worktrees, checks, and releases. Shared Codex instructions are in [AGENTS.md](AGENTS.md); both development guides are currently in Russian.
+
 The C# / WPF project uses the built-in Windows .NET Framework compiler. No .NET SDK or third-party runtime packages are required.
 
 ```powershell
