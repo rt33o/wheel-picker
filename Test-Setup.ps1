@@ -29,6 +29,7 @@ Assert (Test-Path -LiteralPath (Join-Path $fixture 'Desktop\WheelPicker.lnk')) '
 Assert (Test-Path -LiteralPath (Join-Path $fixture 'Startup\WheelPicker.lnk')) 'Autostart shortcut exists'
 $settings = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($settings.AutoStart -eq $true) 'Startup preference synchronized with settings'
+Assert ($settings.WheelDiameter -eq 480 -and $settings.WheelIconPercent -eq 100 -and $settings.WheelTextPercent -eq 100) 'Fresh install uses standard wheel dimensions'
 $pointer = [IO.File]::ReadAllText((Join-Path $fixture 'Plugin\wheelpicker-path.txt'))
 Assert ($pointer -eq $app) 'PowerToys adapter receives correct Unicode executable path'
 Assert (Test-Path -LiteralPath (Join-Path $fixture 'Plugin\Community.PowerToys.Run.Plugin.WheelPicker.dll')) 'PowerToys adapter installed'
@@ -47,6 +48,7 @@ $settings | Add-Member -NotePropertyName Halloween -NotePropertyValue $true -For
 $settings | Add-Member -NotePropertyName ShowOrbitCat -NotePropertyValue $false -Force
 $settings | Add-Member -NotePropertyName OrbitCatSpeed -NotePropertyValue 2.25 -Force
 $settings | Add-Member -NotePropertyName OrbitPet -NotePropertyValue 'cat' -Force
+$settings.WheelDiameter=620; $settings.WheelIconPercent=115; $settings.WheelTextPercent=120
 $settings.Items[0] | Add-Member -NotePropertyName RepeatLaunch -NotePropertyValue 'hide' -Force
 $settings.Version=3
 $commandGroup=[pscustomobject]@{Name='Команды 🚀';Kind='commands';Children=@()}
@@ -70,6 +72,7 @@ Assert ($updated.Language -eq 'en' -and $updated.Halloween) 'Upgrade preserves E
 Assert ($updated.ShowOrbitCat -eq $false) 'Upgrade preserves disabled cat preference'
 Assert ($updated.OrbitCatSpeed -eq 2.25) 'Upgrade preserves custom cat running speed'
 Assert ($updated.OrbitPet -eq 'cat' -and $updated.Halloween) 'Upgrade preserves explicit cat choice in Halloween theme'
+Assert ($updated.WheelDiameter -eq 620 -and $updated.WheelIconPercent -eq 115 -and $updated.WheelTextPercent -eq 120) 'Upgrade preserves custom wheel, icon and text sizes'
 Assert ($updated.Items[0].RepeatLaunch -eq 'hide') 'Upgrade preserves hidden repeat action on a root app'
 Assert ($updated.Items[-2].Children[0].RepeatLaunch -eq 'allow') 'Upgrade preserves explicit repeat action inside a group'
 Assert ($updated.AutoStart -eq $false) 'Upgrade applies disabled startup preference'
@@ -91,6 +94,8 @@ Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Key -eq
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-2].Children[1].WebIconData -eq $iconData) 'Uninstall preserves website icon backups'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-3].Children.Count -eq 10) 'Uninstall preserves all ten commands'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[0].RepeatLaunch -eq 'hide') 'Uninstall preserves per-app repeat-launch preference'
+$preserved = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
+Assert ($preserved.WheelDiameter -eq 620 -and $preserved.WheelIconPercent -eq 115 -and $preserved.WheelTextPercent -eq 120) 'Uninstall preserves all custom wheel dimensions'
 Assert ((Test-Path -LiteralPath (Join-Path $fixture 'App\user-file.txt')) -and (Test-Path -LiteralPath (Join-Path $fixture 'Plugin\user-file.txt'))) 'Uninstall leaves unrelated files untouched'
 # Compile the same script with absent-PowerToys detection to exercise standalone install.
 $standalone = Join-Path $testRoot 'Без PowerToys'
