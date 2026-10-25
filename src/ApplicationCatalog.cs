@@ -87,6 +87,7 @@ namespace WheelPicker {
    return true;
   }
   internal static ProcessStartInfo CreateLaunchInfo(LaunchItem item) {
+   if(item.IsCommand)throw new InvalidOperationException(L.T("Команды вставляются в активное окно через колесо."));
    if(item.IsWebLink)return WebLinks.LaunchInfo(item);
    string target=Environment.ExpandEnvironmentVariables(item.Target);
    var info=new ProcessStartInfo{FileName=target,Arguments=item.Arguments??"",UseShellExecute=true};

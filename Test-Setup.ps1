@@ -44,7 +44,10 @@ try {
 $settings.Key=86; $settings.Modifiers=3; $settings.Items[0].Name='Проверка 🚀'; $settings.ShowForkBounds=$true
 $settings | Add-Member -NotePropertyName Language -NotePropertyValue 'en' -Force
 $settings | Add-Member -NotePropertyName Halloween -NotePropertyValue $true -Force
-$settings.Version=2
+$settings.Version=3
+$commandGroup=[pscustomobject]@{Name='Команды 🚀';Kind='commands';Children=@()}
+for($commandIndex=0;$commandIndex -lt 10;$commandIndex++){$commandGroup.Children += [pscustomobject]@{Name=('Команда '+$commandIndex);Kind='command';Target=('.venv\Scripts\Activate.ps1 # '+$commandIndex);Arguments='';WorkingDirectory=''}}
+$settings.Items += $commandGroup
 $settings.Items += [pscustomobject]@{Name='Группа 🚀';Children=@([pscustomobject]@{Name='Блокнот';Target='notepad.exe';Arguments='';WorkingDirectory='';IconTarget=$null})}
 $iconData=[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'PowerToysRun\wheel.png')))
 $webLink=[pscustomobject]@{Name='Notion';Target='https://www.notion.so/example?page=A#section';Arguments='';WorkingDirectory='';WebIconData=$iconData}
@@ -54,7 +57,9 @@ $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $settingsPath -En
 Run-Setup $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS="powertoys"',('/LOG="'+(Join-Path $testRoot 'upgrade.log')+'"'))
 $updated = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($updated.Key -eq 86 -and $updated.Modifiers -eq 3 -and $updated.Items[0].Name -eq 'Проверка 🚀' -and $updated.ShowForkBounds) 'Upgrade preserves shortcut, Unicode apps and preferences'
-Assert ($updated.Version -eq 2 -and $updated.Items[-2].Name -eq 'Группа 🚀' -and $updated.Items[-2].Children[0].Target -eq 'notepad.exe') 'Upgrade preserves groups and their members'
+Assert ($updated.Version -eq 3 -and $updated.Items[-2].Name -eq 'Группа 🚀' -and $updated.Items[-2].Children[0].Target -eq 'notepad.exe') 'Upgrade preserves groups and their members'
+Assert ($updated.Items[-3].Kind -eq 'commands' -and $updated.Items[-3].Children.Count -eq 10) 'Upgrade preserves a full ten-command group'
+Assert ($updated.Items[-3].Children[9].Kind -eq 'command' -and $updated.Items[-3].Children[9].Target -eq '.venv\Scripts\Activate.ps1 # 9') 'Upgrade retains literal command text and explicit item type'
 Assert ($updated.Items[-2].Children[1].Target -eq $webLink.Target -and $updated.Items[-2].Children[1].WebIconData -eq $iconData) 'Upgrade preserves grouped website URL and custom icon'
 Assert ($updated.Items[-1].Target -eq 'https://drive.google.com/drive/u/0/') 'Upgrade preserves standalone website links'
 Assert ($updated.Language -eq 'en' -and $updated.Halloween) 'Upgrade preserves English language and Halloween theme'
@@ -75,6 +80,7 @@ Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'StartMenu\WheelPicker.lnk'
 Assert (Test-Path -LiteralPath $settingsPath) 'Uninstall preserves user settings'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Key -eq 86) 'Preserved settings retain custom shortcut'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-2].Children[1].WebIconData -eq $iconData) 'Uninstall preserves website icon backups'
+Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-3].Children.Count -eq 10) 'Uninstall preserves all ten commands'
 Assert ((Test-Path -LiteralPath (Join-Path $fixture 'App\user-file.txt')) -and (Test-Path -LiteralPath (Join-Path $fixture 'Plugin\user-file.txt'))) 'Uninstall leaves unrelated files untouched'
 # Compile the same script with absent-PowerToys detection to exercise standalone install.
 $standalone = Join-Path $testRoot 'Без PowerToys'
