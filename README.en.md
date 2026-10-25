@@ -8,13 +8,13 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 A 24-second tour of the current UI: app actions, groups, website icons, up to 10 commands typed without Enter, settings, and English/Halloween. The demo uses sample data; text insertion is illustrated in a sample input field.
 
-## In development: window switching and deletion undo
+## Version 1.5.2: windows, undo and settings
 
-The current source offers three fork actions for running apps: **Switch to window**, **Open again**, and **Close**. Multiple windows can be chosen by title, and minimized windows are restored. Removing a wheel item or a group member offers **Undo** and **Ctrl+Z** until saving, discarding, or successfully importing a draft. Ctrl+Z in a text field keeps its normal editing behavior. These changes have not yet been released in an installer.
+The app offers three fork actions for running apps: **Switch to window**, **Open again**, and **Close**. Multiple windows can be chosen by title, and minimized windows are restored. Removing a wheel item or a group member offers **Undo** and **Ctrl+Z** until saving, discarding, or successfully importing a draft. Ctrl+Z in a text field keeps its normal editing behavior.
 
 In the app editor, **Open again → Automatically / Allow / Hide** controls whether the repeat action is offered. Auto leaves only Switch and Close for Postman and retains all three actions for unknown apps. This is an overridable WheelPicker rule, not universal capability detection. Each entry keeps its own preference, including in backups.
 
-## Version 1.5.2: settings sections
+### Settings sections
 
 Settings now have four pages: **General**, **Apps and groups**, **Wheel**, and **Pet**. Apps, links, and commands share the Apps and groups page with a static wheel thumbnail. Wheel contains activation, delay, placement, and fork options. Pet offers animal selection, speed, and a live preview that reacts to hovering. General contains language, appearance, startup, and backups.
 
