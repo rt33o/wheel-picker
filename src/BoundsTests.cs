@@ -21,7 +21,7 @@ namespace WheelPicker {
    config.Save(Path.Combine(folder,"enabled.json"));Check(Configuration.Load(Path.Combine(folder,"enabled.json")).ShowForkBounds,"Boundary display preference persists");
    config.ShowForkBounds=false;config.Save(Path.Combine(folder,"disabled.json"));Check(!Configuration.Load(Path.Combine(folder,"disabled.json")).ShowForkBounds,"Disabled display preference persists");
    using(var host=new Host(folder,false)) {
-    var settings=new SettingsWindow(host){WindowStartupLocation=WindowStartupLocation.Manual,Left=-10000,Top=-10000};settings.Show();
+    var settings=new SettingsWindow(host){WindowStartupLocation=WindowStartupLocation.Manual,Left=-10000,Top=-10000};settings.SelectSection(1);settings.Show();
     var checkbox=(CheckBox)Field(settings,"showForkBounds");var preview=(Border)Field(settings,"forkPreviewHost");
     Check(checkbox.IsChecked==false&&preview.Visibility==Visibility.Collapsed,"Settings start with hidden preview for disabled display");
     checkbox.IsChecked=true;settings.UpdateLayout();SelfTests.Pump();Check(preview.ActualHeight>=299&&preview.Child!=null,"Live settings window lays out a visible boundary preview");Check(preview.Visibility==Visibility.Visible&&!host.Config.ShowForkBounds,"Preview enables immediately without applying settings");

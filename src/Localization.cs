@@ -6,6 +6,13 @@ namespace WheelPicker {
   internal static void Set(string language){Language=language=="en"?"en":"ru";}
   internal static string T(string russian){string value;return Language=="en"&&English.TryGetValue(russian,out value)?value:russian;}
   internal static readonly Dictionary<string,string> English=new Dictionary<string,string>(StringComparer.Ordinal) {
+   {"Колесо","Wheel"},{"Общие","General"},{"Отменить изменения","Discard changes"},{"Есть несохранённые изменения","Unsaved changes"},{"Все изменения сохранены","All changes saved"},{"Изменения отменены","Changes discarded"},
+   {"Программы, ссылки и команды в вашем колесе.","Apps, links and commands in your wheel."},{"Предпросмотр текущего колеса","Current wheel preview"},{"секторов","sectors"},
+   {"Настройте вызов колеса и выбор действий.","Choose how to open the wheel and select actions."},{"Форки","Forks"},
+   {"Выберите спутника и посмотрите, как он реагирует на курсор.","Choose a companion and see how it reacts to your cursor."},
+   {"По теме: мышка в Halloween, котик — в остальных оформлениях.","Match theme: a bat for Halloween, a cat for other themes."},{"Питомец выключен","Pet is turned off"},
+   {"Язык, оформление, автозапуск и резервные копии.","Language, appearance, startup and backups."},{"Резервная копия","Backup"},
+   {"Сохраните приложения, группы, горячую клавишу, оформление и питомца в одном файле.","Keep your apps, groups, shortcut, appearance and pet in one file."},
    {"Показывать бегущего котика","Show the running cat"},
    {"Показывать анимированного питомца","Show animated pet"},{"Питомец","Pet"},{"По теме","Match theme"},{"Котик","Cat"},{"Летучая мышь","Bat"},{"Скорость питомца","Pet speed"},{"Неизвестный питомец.","Unknown pet."},
    {"Скорость котика","Cat speed"},{" с на круг"," s per orbit"},

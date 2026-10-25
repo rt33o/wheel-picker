@@ -59,6 +59,7 @@ namespace WheelPicker {
    checks+=CommandTests.Run(data);
    checks+=CatTests.Run(data);
    checks+=PetTests.Run(data);
+   checks+=SettingsNavigationTests.Run(data);
    File.WriteAllText(Path.Combine(data,"test-results.txt"),"PASS: "+checks+" checks\r\nPersistence, Unicode, atomic replacement, backup, validation, isolation and radial selection.\r\n");
   }
   private static void RunLifecycleTests(string data) {
@@ -166,9 +167,9 @@ namespace WheelPicker {
     RenderElement((FrameworkElement)settingsPreview.Content,1100,800,Path.Combine(data,"settings-dark.png"));
     typeof(SettingsWindow).GetMethod("ShowSavedToast",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(settingsPreview,null);
     RenderElement((FrameworkElement)settingsPreview.Content,1100,800,Path.Combine(data,"settings-saved-dark.png"));settingsPreview.Reload();
-    ((System.Windows.Controls.ScrollViewer)typeof(SettingsWindow).GetField("pageScroll",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(settingsPreview)).ScrollToVerticalOffset(350);
+    settingsPreview.SelectSection(1);((System.Windows.Controls.ScrollViewer)typeof(SettingsWindow).GetField("pageScroll",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(settingsPreview)).ScrollToVerticalOffset(350);
     RenderElement((FrameworkElement)settingsPreview.Content,1100,800,Path.Combine(data,"settings-fork-padding-dark.png"));
-    ((System.Windows.Controls.ScrollViewer)typeof(SettingsWindow).GetField("pageScroll",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(settingsPreview)).ScrollToEnd();
+    settingsPreview.SelectSection(0);((System.Windows.Controls.ScrollViewer)typeof(SettingsWindow).GetField("pageScroll",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(settingsPreview)).ScrollToEnd();
     RenderElement((FrameworkElement)settingsPreview.Content,1100,800,Path.Combine(data,"settings-order-backup-dark.png"));
     RenderElement((FrameworkElement)new ItemDialog(null).Content,640,500,Path.Combine(data,"add-dialog-dark.png"),true);
     var branchConfig=c.Copy();branchConfig.Items.Clear();branchConfig.Items.Add(new LaunchItem{Name="Google Chrome",Target=@"C:\Program Files\Google\Chrome\Application\chrome.exe"});branchConfig.Items.Add(new LaunchItem{Name="Блокнот",Target="notepad.exe"});branchConfig.Items.Add(new LaunchItem{Name="Проводник",Target="explorer.exe"});branchConfig.Items.Add(new LaunchItem{Name="Paint",Target="mspaint.exe"});
@@ -177,7 +178,7 @@ namespace WheelPicker {
     RenderBranch(screenshot,true,Path.Combine(data,"outer-fork-chrome-dark.png"),3);RenderBranch(screenshot,true,Path.Combine(data,"outer-fork-explorer-dark.png"),0);RenderBranch(screenshot,true,Path.Combine(data,"outer-fork-code-dark.png"),5);
     screenshot.ShowForkBounds=true;RenderBranch(screenshot,true,Path.Combine(data,"visible-bounds-dark.png"),0);RenderBranch(screenshot,false,Path.Combine(data,"visible-bounds-light.png"),0);
     UI.Theme(true);
-    host.Config.ShowForkBounds=true;var boundsSettingsPreview=new SettingsWindow(host);
+    host.Config.ShowForkBounds=true;var boundsSettingsPreview=new SettingsWindow(host);boundsSettingsPreview.SelectSection(1);
     RenderElement((FrameworkElement)boundsSettingsPreview.Content,1100,800,Path.Combine(data,"bounds-settings-initial.png"));
     ((System.Windows.Controls.ScrollViewer)typeof(SettingsWindow).GetField("pageScroll",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(boundsSettingsPreview)).ScrollToVerticalOffset(650);
     RenderElement((FrameworkElement)boundsSettingsPreview.Content,1100,800,Path.Combine(data,"live-bounds-settings-dark.png"));host.Config.ShowForkBounds=false;
