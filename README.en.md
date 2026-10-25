@@ -8,6 +8,10 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 A 24-second tour of the current UI: app actions, groups, website icons, up to 10 commands typed without Enter, settings, and English/Halloween. The demo uses sample data; text insertion is illustrated in a sample input field.
 
+## Version 1.6.1: new app icon
+
+A blue wheel with an outgoing app tile and arrow replaces the previous app, tray, installer, and PowerToys Run icon. Windows assets include transparent sizes from 16 to 256 px. General settings keeps its gear symbol; Wheel settings now uses a distinct segmented circle.
+
 ## Version 1.6.0: drag to add and wheel sizing
 
 Start dragging a file, shortcut, or browser link, then invoke the wheel with its hotkey and release the mouse over **+**. In this mode the wheel appears over the source window without taking focus; you can release the hotkey before finishing the drag. A prefilled form opens: review the name and select **Add**. One item is accepted at a time, and the original file stays in place. Website shortcuts (`.url`) become regular web links with favicon support. Files and folders open through Windows.
