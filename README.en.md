@@ -8,6 +8,14 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 A 24-second tour of the current UI: app actions, groups, website icons, up to 10 commands typed without Enter, settings, and English/Halloween. The demo uses sample data; text insertion is illustrated in a sample input field.
 
+## Version 1.6.0: drag to add and wheel sizing
+
+Start dragging a file, shortcut, or browser link, then invoke the wheel with its hotkey and release the mouse over **+**. In this mode the wheel appears over the source window without taking focus; you can release the hotkey before finishing the drag. A prefilled form opens: review the name and select **Add**. One item is accepted at a time, and the original file stays in place. Website shortcuts (`.url`) become regular web links with favicon support. Files and folders open through Windows.
+
+You can also drop an item onto **+ Add** in **Apps and groups**, without a hotkey. Additions made in settings remain in the draft until saved.
+
+Under **Wheel → Wheel size**, adjust the diameter (360–640), icon size, and text size (80–125%). A static preview and size reset are included. The wheel shrinks on smaller screens to fit outer actions; fork captions adjust to the available space. Preferences share the settings draft and import/export.
+
 ## Version 1.5.2: windows, undo and settings
 
 The app offers three fork actions for running apps: **Switch to window**, **Open again**, and **Close**. Multiple windows can be chosen by title, and minimized windows are restored. Removing a wheel item or a group member offers **Undo** and **Ctrl+Z** until saving, discarding, or successfully importing a draft. Ctrl+Z in a text field keeps its normal editing behavior.

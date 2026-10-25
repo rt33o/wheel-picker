@@ -34,7 +34,7 @@ namespace WheelPicker {
     if(File.Exists(sys)) full=sys; else if(File.Exists(win)) full=win;
    }
    var info=new ShellInfo();
-   try {if(File.Exists(full) && SHGetFileInfo(full,0,ref info,(uint)Marshal.SizeOf(info),0x100)!=IntPtr.Zero && info.Icon!=IntPtr.Zero) {
+   try {if((File.Exists(full)||Directory.Exists(full)) && SHGetFileInfo(full,0,ref info,(uint)Marshal.SizeOf(info),0x100)!=IntPtr.Zero && info.Icon!=IntPtr.Zero) {
     cached=Imaging.CreateBitmapSourceFromHIcon(info.Icon,Int32Rect.Empty,BitmapSizeOptions.FromWidthAndHeight(40,40)); cached.Freeze();
    }} catch {cached=null;} finally {if(info.Icon!=IntPtr.Zero) DestroyIcon(info.Icon);}
    lock(Icons){Icons[target]=cached;} return cached;

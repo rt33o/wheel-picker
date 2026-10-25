@@ -63,14 +63,14 @@ namespace WheelPicker {
     double angle=(-90+i*step)*Math.PI/180;
     var content=new StackPanel{Width=count>8?76:102,HorizontalAlignment=HorizontalAlignment.Center};
     if(i<c.Items.Count) {
-     var icon=new Grid{Width=42,Height=34};icon.Children.Add(UI.ItemIcon(c.Items[i],30));
+     var icon=new Grid{Width=42,Height=Math.Max(34,30*c.WheelIconPercent/100.0)};icon.Children.Add(UI.ItemIcon(c.Items[i],30*c.WheelIconPercent/100.0));
      if(i<running.Length && running[i])icon.Children.Add(new Ellipse{Width=8,Height=8,Fill=UI.Accent,Stroke=UI.Surface,StrokeThickness=1.5,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Bottom,ToolTip=L.T("Приложение открыто")});
      content.Children.Add(icon);
     }
     else {var plus=UI.Text("+",35,UI.Accent);plus.HorizontalAlignment=HorizontalAlignment.Center;plus.Height=40;content.Children.Add(plus);}
-    var label=UI.Text(i<c.Items.Count?c.Items[i].Name:L.T("Добавить"),count>8?11:12,i<c.Items.Count?UI.Ink:UI.Accent);
-    label.TextAlignment=TextAlignment.Center;label.MaxHeight=34;label.Margin=new Thickness(0,7,0,0);content.Children.Add(label);
-    var b=new Button{Content=content,Width=content.Width+4,Height=88,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),ToolTip=i<c.Items.Count?c.Items[i].Name+"\n"+(c.Items[i].IsGroup?L.T("Группа · приложений: ")+c.Items[i].Children.Count:c.Items[i].Target):L.T("Добавить приложение"),Focusable=true};
+    var label=UI.Text(i<c.Items.Count?c.Items[i].Name:L.T("Добавить"),(count>8?11:12)*c.WheelTextPercent/100.0,i<c.Items.Count?UI.Ink:UI.Accent);
+    label.TextAlignment=TextAlignment.Center;label.MaxHeight=34*c.WheelTextPercent/100.0;label.Margin=new Thickness(0,7,0,0);content.Children.Add(label);
+    var b=new Button{Content=content,Width=content.Width+4,Height=88,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),ToolTip=i<c.Items.Count?c.Items[i].Name+"\n"+(c.Items[i].IsGroup?L.T("Группа · приложений: ")+c.Items[i].Children.Count:c.Items[i].Target):L.T("Перетащите сюда файл, ярлык, папку или ссылку из браузера."),Focusable=true};
     AutomationProperties.SetName(b,i<c.Items.Count?L.T("Запустить ")+c.Items[i].Name:L.T("Добавить приложение"));
     b.Click+=delegate{if(Pick!=null)Pick(slot);};
     SetLeft(b,260+Math.Cos(angle)*164-b.Width/2);SetTop(b,260+Math.Sin(angle)*164-44);Face.Children.Add(b);
@@ -79,8 +79,8 @@ namespace WheelPicker {
    var center=new Border{Width=178,Height=178,CornerRadius=new CornerRadius(89),Background=UI.Surface,BorderBrush=UI.Line,BorderThickness=new Thickness(1)};
    var cp=new StackPanel{VerticalAlignment=VerticalAlignment.Center,Margin=new Thickness(15,0,15,0)};
    var brand=UI.Text("W H E E L P I C K E R",9,UI.Accent);brand.TextAlignment=TextAlignment.Center;cp.Children.Add(brand);
-   title=UI.Text(L.T("Выберите\nприложение"),17,UI.Ink);title.TextAlignment=TextAlignment.Center;title.FontWeight=FontWeights.SemiBold;title.Height=48;title.Margin=new Thickness(0,8,0,4);cp.Children.Add(title);
-   hint=UI.Text(L.T("Наведите курсор"),10,UI.Muted);hint.TextAlignment=TextAlignment.Center;hint.Height=26;cp.Children.Add(hint);
+   title=UI.Text(L.T("Выберите\nприложение"),17*c.WheelTextPercent/100.0,UI.Ink);title.TextAlignment=TextAlignment.Center;title.FontWeight=FontWeights.SemiBold;title.Height=48*c.WheelTextPercent/100.0;title.Margin=new Thickness(0,8,0,4);cp.Children.Add(title);
+   hint=UI.Text(L.T("Наведите курсор"),10*c.WheelTextPercent/100.0,UI.Muted);hint.TextAlignment=TextAlignment.Center;hint.Height=26*c.WheelTextPercent/100.0;cp.Children.Add(hint);
    var settings=UI.Button("\uE713",delegate{if(Settings!=null)Settings();});settings.FontFamily=new FontFamily("Segoe MDL2 Assets");settings.FontSize=15;settings.Padding=new Thickness(6);settings.Width=30;settings.Height=28;settings.Background=Brushes.Transparent;settings.BorderThickness=new Thickness(0);settings.ToolTip=L.T("Настройки");AutomationProperties.SetName(settings,L.T("Настройки"));cp.Children.Add(settings);
    center.Child=cp;SetLeft(center,171);SetTop(center,171);Face.Children.Add(center);
    MouseMove+=delegate(object sender,MouseEventArgs e) {var pos=e.GetPosition(Face);UpdatePointer(pos.X,pos.Y);};
@@ -90,6 +90,10 @@ namespace WheelPicker {
   internal static int Hit(double x,double y,int count) {
    double dx=x-260,dy=y-260,r=Math.Sqrt(dx*dx+dy*dy);if(r<96||r>235)return -1;
    double a=(Math.Atan2(dy,dx)*180/Math.PI+90+180.0/count+360)%360;return (int)(a/(360.0/count))%count;
+  }
+  internal void ShowDropHint(double x,double y,bool supported,bool full) {
+   ClearCatPointer();Select(Hit(x,y,config.Items.Count+1)==config.Items.Count?config.Items.Count:-1);
+   hint.Text=full?L.T("В колесе уже 10 секторов."):!supported?L.T("Нужен файл или веб-ссылка"):Selected>=0?L.T("Отпустите — добавить"):L.T("Перетащите на +");
   }
   internal void Select(int index) {
    if(index==Selected)return; Selected=index;SelectedAction=-1;
@@ -192,7 +196,7 @@ namespace WheelPicker {
     var content=new Canvas{Width=780,Height=780};
     var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false};
     content.Children.Add(shape);actionShapes[a]=shape;
-    var point=ActionPoint(a);var label=ForkActions.Label(a==ForkActions.Focus?L.T("Перейти\nк окну"):explorer[Selected]?(a==0?L.T("Новое\nокно"):L.T("Закрыть\nвсе окна")):(a==0?L.T("Открыть\nповторно"):L.T("Закрыть")),geometry,point,config.Items.Count>7?10.5:12);
+    var point=ActionPoint(a);var label=ForkActions.Label(a==ForkActions.Focus?L.T("Перейти\nк окну"):explorer[Selected]?(a==0?L.T("Новое\nокно"):L.T("Закрыть\nвсе окна")):(a==0?L.T("Открыть\nповторно"):L.T("Закрыть")),geometry,point,(config.Items.Count>7?10.5:12)*config.WheelTextPercent/100.0);
     SetLeft(label,point.X+130-label.DesiredSize.Width/2);SetTop(label,point.Y+130-label.DesiredSize.Height/2);content.Children.Add(label);
     var button=new Button{Content=content,Width=780,Height=780,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Clip=clip,ToolTip=ActionCaption(a)+" — "+config.Items[Selected].Name};
     AutomationProperties.SetName(button,ActionCaption(a)+" "+config.Items[Selected].Name);
@@ -230,8 +234,13 @@ namespace WheelPicker {
   private readonly DispatcherTimer hold;
   private bool dismissing;
   private Action afterClose;
+  private bool externalDrag;
+  internal readonly bool DropMode;
   internal bool IsDismissing {get{return dismissing;}}
-  internal WheelWindow(Host h,bool fromHotkey) {
+  internal WheelWindow(Host h,bool fromHotkey):this(h,fromHotkey,fromHotkey&&Native.Down(1)) {}
+  internal WheelWindow(Host h,bool fromHotkey,bool dropMode) {
+   DropMode=dropMode;ShowActivated=!dropMode;AllowDrop=true;
+   SourceInitialized+=delegate{if(DropMode)System.Windows.Interop.HwndSource.FromHwnd(new System.Windows.Interop.WindowInteropHelper(this).Handle).AddHook(NoActivate);};
    commandDestination=Commands.Capture();
    UI.ApplyWindowTheme(this);host=h;Title=L.T("WheelPicker — колесо");Width=900;Height=930;WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.NoResize;AllowsTransparency=true;Background=new SolidColorBrush(Color.FromArgb(1,0,0,0));Topmost=true;ShowInTaskbar=false;
    var opened=new bool[h.Config.Items.Count];
@@ -249,7 +258,7 @@ namespace WheelPicker {
     Left=a.X;Top=a.Y;Width=workWidth;Height=workHeight;
     // The input window covers this monitor; only the visible wheel determines its drawing scale.
     bool groups=h.Config.Items.Exists(i=>i.IsGroup);double margin=groups?460:350;
-    double scale=Math.Min(1,Math.Min((workWidth-16)/(groups?936:716),(workHeight-16)/(groups?960:740)));
+    double scale=WheelSizing.Scale(h.Config,workWidth,workHeight);
     double centerX=h.Config.AtCursor?p.X-a.X:workWidth/2,centerY=h.Config.AtCursor?p.Y-a.Y:workHeight/2;
     centerX=Math.Max(margin*scale,Math.Min(centerX,workWidth-margin*scale));
     centerY=Math.Max(margin*scale,Math.Min(centerY,workHeight-(margin+22)*scale));
@@ -257,12 +266,16 @@ namespace WheelPicker {
     Canvas.SetLeft(view,centerX-390*scale);Canvas.SetTop(view,centerY-390*scale);
     tip.Width=680*scale;tip.FontSize=11*scale;tip.TextAlignment=TextAlignment.Center;
     Canvas.SetLeft(tip,centerX-340*scale);Canvas.SetTop(tip,centerY+margin*scale);
-    Focus();
+    if(!DropMode)Focus();
    };
    MouseMove+=delegate(object sender,MouseEventArgs e){var p=e.GetPosition(view.Face);view.UpdatePointer(p.X,p.Y);};
    PreviewMouseLeftButtonUp+=delegate(object sender,MouseButtonEventArgs e){var p=e.GetPosition(view.Face);if(ChoosePointerAction(p.X,p.Y))e.Handled=true;else if(!view.ReleaseMode&&WheelView.Hit(p.X,p.Y,h.Config.Items.Count+1)<0&&(p.X-260)*(p.X-260)+(p.Y-260)*(p.Y-260)>235*235){e.Handled=true;Dismiss();}};
    MouseLeave+=delegate{view.ClearCatPointer();view.Select(-1);};
-   Deactivated+=delegate{Dismiss();};
+   Deactivated+=delegate{if(!DropMode&&!externalDrag)Dismiss();};
+   PreviewDragEnter+=UpdateDrop;PreviewDragOver+=UpdateDrop;
+   PreviewDragLeave+=delegate{view.Select(-1);};
+   // Complete OLE's Drop callback before closing its registered HWND or opening a modal dialog.
+   PreviewDrop+=delegate(object sender,DragEventArgs e){var p=e.GetPosition(view.Face);e.Handled=true;LaunchItem item;string error;e.Effects=DragDropEffects.None;if(CanDrop(p.X,p.Y,e.Data,e.AllowedEffects,out item,out error)){e.Effects=WheelDrop.Effect(e.AllowedEffects);if(hold!=null)hold.Stop();Dispatcher.BeginInvoke(DispatcherPriority.Background,new Action(delegate{Finish(delegate{h.AddItem(item);});}));}else if(DropMode)Dispatcher.BeginInvoke(DispatcherPriority.Background,new Action(Dismiss));};
    PreviewKeyDown+=delegate(object sender,KeyEventArgs e) {
     if(e.Key==Key.Escape){e.Handled=true;Dismiss();}
     else if(view.HasGroup&&(e.Key==Key.Up||e.Key==Key.Down||e.Key==Key.Tab&&!view.HasBranch)){e.Handled=true;view.StepGroupChild(e.Key==Key.Up?-1:1);}
@@ -273,7 +286,16 @@ namespace WheelPicker {
     else if(e.Key>=Key.D1&&e.Key<=Key.D9){e.Handled=true;Choose((int)e.Key-(int)Key.D1);}
    };
    MouseWheel+=delegate(object sender,MouseWheelEventArgs e){view.Select((view.Selected+(e.Delta<0?1:h.Config.Items.Count)+h.Config.Items.Count+1)%(h.Config.Items.Count+1));e.Handled=true;};
-   if(fromHotkey && h.Config.HoldToSelect) {hold=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(16)};hold.Tick+=delegate{if(!Native.TriggerDown(h.Config))Choose(view.Selected);};Loaded+=delegate{if(!dismissing)hold.Start();};}
+   if(DropMode||fromHotkey&&h.Config.HoldToSelect) {int releasedTicks=0;hold=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(16)};hold.Tick+=delegate{if(DropMode||externalDrag){releasedTicks=Native.Down(1)?0:releasedTicks+1;if(Native.Down(27)||releasedTicks>=5)Dispatcher.BeginInvoke(DispatcherPriority.Background,new Action(delegate{if(!dismissing)Dismiss();}));return;}if(!Native.TriggerDown(h.Config))Choose(view.Selected);};Loaded+=delegate{if(!dismissing)hold.Start();};}
+  }
+  private IntPtr NoActivate(IntPtr hwnd,int message,IntPtr w,IntPtr l,ref bool handled){if(message==0x21){handled=true;return new IntPtr(3);}return IntPtr.Zero;}
+  internal bool CanDrop(double x,double y,IDataObject data,DragDropEffects allowed,out LaunchItem item,out string error) {
+   item=null;error=null;if(dismissing||host.Config.Items.Count>=10||WheelView.Hit(x,y,host.Config.Items.Count+1)!=host.Config.Items.Count||WheelDrop.Effect(allowed)==DragDropEffects.None)return false;
+   return WheelDrop.TryRead(data,out item,out error);
+  }
+  private void UpdateDrop(object sender,DragEventArgs e) {
+   externalDrag=true;var p=e.GetPosition(view.Face);LaunchItem item;string error;bool supported=WheelDrop.TryRead(e.Data,out item,out error);
+   view.ShowDropHint(p.X,p.Y,supported,host.Config.Items.Count>=10);e.Effects=CanDrop(p.X,p.Y,e.Data,e.AllowedEffects,out item,out error)?WheelDrop.Effect(e.AllowedEffects):DragDropEffects.None;e.Handled=true;
   }
   internal bool ChoosePointerAction(double x,double y) {
    if(!dismissing&&view.UpdateCatPointer(x,y))return true;
@@ -303,6 +325,7 @@ namespace WheelPicker {
    if(action!=null && !Dispatcher.HasShutdownStarted)Dispatcher.BeginInvoke(DispatcherPriority.Background,action);
   }
   private void Choose(int index) {
+   if(DropMode||externalDrag)return;
    if(view.Cat!=null&&view.Cat.IsHovered){if(view.ReleaseMode)Dismiss();return;}
    if(index<0 || index>host.Config.Items.Count){Dismiss();return;}
    if(index==host.Config.Items.Count){Finish(host.AddItem);return;}

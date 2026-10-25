@@ -42,10 +42,14 @@ namespace WheelPicker {
   [DataMember] public int ForkOutwardPadding=120;
   [DataMember] public int ForkSidePadding=60;
   [DataMember] public bool ShowForkBounds;
-  [OnDeserializing] private void BeforeLoad(StreamingContext context) {Language="ru";ShowOrbitCat=true;OrbitCatSpeed=1;OrbitPet="theme";CloseOnRepeat=true;ActivationDelayMs=180;ForkOutwardPadding=120;ForkSidePadding=60;}
+  [DataMember] public int WheelDiameter=480;
+  [DataMember] public int WheelIconPercent=100;
+  [DataMember] public int WheelTextPercent=100;
+  [OnDeserializing] private void BeforeLoad(StreamingContext context) {Language="ru";ShowOrbitCat=true;OrbitCatSpeed=1;OrbitPet="theme";CloseOnRepeat=true;ActivationDelayMs=180;ForkOutwardPadding=120;ForkSidePadding=60;WheelDiameter=480;WheelIconPercent=100;WheelTextPercent=100;}
   [DataMember] public List<LaunchItem> Items=new List<LaunchItem>();
   public Configuration Copy() {var c=(Configuration)MemberwiseClone(); c.Items=Items.ConvertAll(i=>i.Copy()); return c;}
   public void Validate() {
+   if(!WheelSizing.Valid(WheelDiameter,WheelIconPercent,WheelTextPercent))throw new InvalidDataException(L.T("Диаметр колеса: 360–640, значки и текст: 80–125%."));
    if(OrbitPet!="theme"&&OrbitPet!="cat"&&OrbitPet!="bat")throw new InvalidDataException(L.T("Неизвестный питомец."));
    if(Double.IsNaN(OrbitCatSpeed)||Double.IsInfinity(OrbitCatSpeed)||OrbitCatSpeed<.25||OrbitCatSpeed>3)throw new InvalidDataException(L.T("Скорость питомца должна быть от 0,25× до 3×."));
    if(Language!="ru"&&Language!="en")throw new InvalidDataException(L.T("Неизвестный язык интерфейса."));

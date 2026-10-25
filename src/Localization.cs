@@ -6,6 +6,13 @@ namespace WheelPicker {
   internal static void Set(string language){Language=language=="en"?"en":"ru";}
   internal static string T(string russian){string value;return Language=="en"&&English.TryGetValue(russian,out value)?value:russian;}
   internal static readonly Dictionary<string,string> English=new Dictionary<string,string>(StringComparer.Ordinal) {
+   {"Диаметр колеса: 360–640, значки и текст: 80–125%.","Wheel diameter: 360–640, icons and text: 80–125%."},
+   {"Перетащите один файл, ярлык, папку или ссылку http/https.","Drop one file, shortcut, folder, or http/https link."},{"Добавляйте по одному элементу за раз.","Add one item at a time."},
+   {"Ярлык сайта должен содержать ссылку http:// или https://.","The website shortcut must contain an http:// or https:// link."},
+   {"Нужен файл или веб-ссылка","Drop a file or web link"},{"Отпустите — добавить","Release to add"},{"Перетащите на +","Drag onto +"},
+   {"Размер колеса","Wheel size"},{"Диаметр колеса","Wheel diameter"},{"Размер значков","Icon size"},{"Размер текста","Text size"},{"Стандартные размеры","Reset sizes"},
+   {"Размеры учитывают масштаб Windows. На маленьком экране колесо уменьшается автоматически. Подписи форков подстраиваются под доступное место.","Sizes follow Windows scaling. The wheel shrinks automatically on smaller screens. Fork labels adjust to the available space."},
+   {"Перетащите сюда файл, ярлык, папку или ссылку из браузера.","Drop a file, shortcut, folder, or browser link here."},{"Не удалось добавить элемент","Could not add item"},
    {"Открывать повторно","Open again"},{"Разрешать","Allow"},{"Скрывать","Hide"},{"Неизвестное правило повторного открытия.","Unknown repeat-launch rule."},
    {"Авто скрывает действие для известных приложений с одним окном, включая Postman. Для остальных оно доступно.","Auto hides this action for known single-window apps, including Postman. It remains available for other apps."},
    {"Перейти к окну","Switch to window"},{"Перейти\nк окну","Switch to\nwindow"},{"перейти к окну","switch to window"},{"Перейти","Switch"},{"Открытые окна","Open windows"},{"Открытых окон: ","Open windows: "},{"Окно без названия","Untitled window"},

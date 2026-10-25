@@ -171,8 +171,7 @@ namespace WheelPicker {
    next.Closed+=delegate{if(Object.ReferenceEquals(wheel,next))wheel=null;};
    next.Show();
    if(next.IsDismissing || !next.IsVisible)return;
-   next.Activate();
-   if(!next.IsDismissing)Native.SetForegroundWindow(new WindowInteropHelper(next).Handle);
+   if(!next.DropMode){next.Activate();if(!next.IsDismissing)Native.SetForegroundWindow(new WindowInteropHelper(next).Handle);}
    }finally{wheelOpening=false;}
   }
   private bool FocusItemDialog() {
@@ -183,18 +182,22 @@ namespace WheelPicker {
    if(target.IsVisible) {if(target.WindowState==WindowState.Minimized)target.WindowState=WindowState.Normal;target.Activate();Native.SetForegroundWindow(new WindowInteropHelper(target).Handle);}
    return true;
   }
-  internal LaunchItem EditItem(LaunchItem item,Window owner) {
+  internal LaunchItem EditItem(LaunchItem item,Window owner) {return EditItem(item,owner,false);}
+  internal LaunchItem EditItem(LaunchItem item,Window owner,bool adding) {
    if(FocusItemDialog())return null;
    itemDialogOpening=true;
    try {
-    itemDialog=item!=null&&item.IsGroup?(Window)new GroupDialog(item):new ItemDialog(item);if(owner!=null)itemDialog.Owner=owner;
+    itemDialog=item!=null&&item.IsGroup?(Window)new GroupDialog(item):new ItemDialog(item,false,false,adding);if(owner!=null)itemDialog.Owner=owner;
     if(itemDialog.ShowDialog()!=true)return null;
     return itemDialog is GroupDialog?((GroupDialog)itemDialog).Result:((ItemDialog)itemDialog).Result;
    } finally {itemDialog=null;itemDialogOpening=false;}
   }
   internal void AddItem() {
+   AddItem(null);
+  }
+  internal void AddItem(LaunchItem seed) {
    if(Config.Items.Count>=10) {MessageBox.Show(L.T("В колесе уже 10 секторов. Удалите приложение или группу в настройках."),"WheelPicker"); return;}
-   var result=EditItem(null,null); if(result!=null) {var c=Config.Copy(); c.Items.Add(result); Apply(c,null); if(settings!=null)settings.Reload();}
+   var result=EditItem(seed,null,true); if(result!=null) {var c=Config.Copy(); c.Items.Add(result); Apply(c,null); if(settings!=null)settings.Reload();}
   }
   internal void Launch(int index) {LaunchNew(index);}
   public void Dispose() {
@@ -219,6 +222,7 @@ namespace WheelPicker {
      var config=Configuration.Load(Path.Combine(data,"settings.json"));config.AutoStart=args[startupOption+1]=="on";config.Save(Path.Combine(data,"settings.json"));return 0;
     }
     if(Array.IndexOf(args,"--install")>=0)return Installer.Run();
+    if(Array.IndexOf(args,"--drop-input-test")>=0) {WheelDropInputTests.Run(data);return 0;}
     if(Array.IndexOf(args,"--self-test")>=0) {CommandTests.NativeInputEnabled=Array.IndexOf(args,"--native-input")>=0;SelfTests.Run(data);return 0;}
     if(Array.IndexOf(args,"--render-preview")>=0) {SelfTests.Render(data);return 0;}
     string instance;
