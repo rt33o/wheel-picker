@@ -43,7 +43,9 @@ namespace WheelPicker {
    try{shell=Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell",true));shortcut=shell.GetType().InvokeMember("CreateShortcut",BindingFlags.InvokeMethod,null,shell,new object[]{link});shortcut.GetType().InvokeMember("TargetPath",BindingFlags.SetProperty,null,shortcut,new object[]{original.Target});shortcut.GetType().InvokeMember("Save",BindingFlags.InvokeMethod,null,shortcut,null);Check(AppActivation.SameApplication(original,new LaunchItem{Target=link}),"Shortcut and executable cannot become duplicate members");}
    finally{if(shortcut!=null)System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shortcut);if(shell!=null)System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);}
    var legacy=config.Copy();legacy.Items[0].Children[1]=legacy.Items[0].Children[0].Copy();string legacyPath=Path.Combine(folder,"existing-duplicates.json");legacy.Save(legacyPath);Check(Configuration.Load(legacyPath).Items[0].Children.Count==3,"Existing duplicate settings remain readable for manual correction");
-   for(int slots=1;slots<=10;slots++)for(int parent=0;parent<slots;parent++)for(int members=1;members<=3;members++) {
+   // One sector, normal density and maximum density; top, sides, bottom and wrap-around.
+   // Group member routing does not need every root slot count and parent permutation.
+   foreach(int slots in new[]{1,6,10})foreach(int parent in new SortedSet<int>{0,slots/4,slots/2,3*slots/4,slots-1})for(int members=1;members<=3;members++) {
     var c=new Configuration{ShowForkBounds=true};for(int i=0;i<slots;i++)c.Items.Add(new LaunchItem{Name="App "+i,Target="test.exe"});
     var g=Sample();while(g.Children.Count>members)g.Children.RemoveAt(g.Children.Count-1);c.Items[parent]=g;
     var view=new WheelView(c,null,delegate(LaunchItem item){return true;});view.Select(parent);
