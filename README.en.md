@@ -8,7 +8,13 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 A 24-second tour of the current UI: app actions, groups, website icons, up to 10 commands typed without Enter, settings, and English/Halloween. The demo uses sample data; text insertion is illustrated in a sample input field.
 
-## Version 1.5: command groups
+## Version 1.5.2: settings sections
+
+Settings now have four pages: **General**, **Apps and groups**, **Wheel**, and **Pet**. Apps, links, and commands share the Apps and groups page with a static wheel thumbnail. Wheel contains activation, delay, placement, and fork options. Pet offers animal selection, speed, and a live preview that reacts to hovering. General contains language, appearance, startup, and backups.
+
+Edits remain in a shared draft when switching pages. **Save changes** and **Discard changes** stay at the bottom of the window, with an unsaved-change indicator and a nonmodal notification after saving.
+
+## Version 1.5: command groups and pets
 
 **1.5.1** adds two pixel pets on the inner ring: a ginger cat and a bat. Settings offer **Show animated pet**, **Match theme / Cat / Bat**, and speed from **0.25× to 3×**. The automatic choice is a bat for Halloween and a cat for other themes; either pet can be chosen in any theme. Hover to pause: the pet faces you, blinks, and displays a flashing yellow question mark, then resumes from the same spot. Preferences travel with backups; sprites are embedded in the EXE. [Sprites and prompts](assets/README.md).
 

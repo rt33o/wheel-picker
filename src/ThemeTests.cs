@@ -27,7 +27,7 @@ namespace WheelPicker {
      var picker=new ProgramPickerWindow(new System.Collections.Generic.List<InstalledProgram>());
      Check(Contrast(picker.Foreground,picker.Background)>=4.5,"Program picker window uses selected theme");picker.Close();
      var settings=new SettingsWindow(host);
-     Check(!ContainsButton(settings,"Приложения") && !ContainsButton(settings,"Активация"),"Removed sidebar actions do not appear");
+     Check(!ContainsButton(settings,"Обзор") && !ContainsButton(settings,"Активация"),"Old overview and inactive activation actions do not appear");
      Check(Contrast(UI.Muted,settings.Background)>=4.5,"Secondary text remains readable on settings page");
      Check(Contrast((Brush)Application.Current.Resources["ScrollThumb"],settings.Background)>=3,"Scrollbar remains visible without a bright track");
      settings.Close();

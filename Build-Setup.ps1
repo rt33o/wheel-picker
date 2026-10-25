@@ -1,6 +1,6 @@
 param(
  [string]$CompilerPath,
- [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.5.1',
+ [ValidatePattern('^\d+\.\d+\.\d+$')][string]$Version = '1.5.2',
  [string]$OutputDirectory = (Split-Path $PSScriptRoot),
  [ValidatePattern('^[\w.-]+$')][string]$OutputBaseName = 'Setup',
  [string]$TestRoot
