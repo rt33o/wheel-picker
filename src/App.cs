@@ -223,6 +223,7 @@ namespace WheelPicker {
     }
     if(Array.IndexOf(args,"--install")>=0)return Installer.Run();
     if(Array.IndexOf(args,"--drop-input-test")>=0) {WheelDropInputTests.Run(data);return 0;}
+    if(Array.IndexOf(args,"--row-drag-input-test")>=0) {RowDragInputTests.Run(data);return 0;}
     if(Array.IndexOf(args,"--self-test")>=0) {CommandTests.NativeInputEnabled=Array.IndexOf(args,"--native-input")>=0;SelfTests.Run(data);return 0;}
     if(Array.IndexOf(args,"--render-preview")>=0) {SelfTests.Render(data);return 0;}
     string instance;

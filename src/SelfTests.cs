@@ -53,6 +53,7 @@ namespace WheelPicker {
    checks+=BoundsTests.Run(data);
    checks+=GroupTests.Run(data);
    checks+=GroupDragTests.Run(data);
+   checks+=DragGroupCreationTests.Run(data);
    checks+=AppearanceTests.Run(data);
    checks+=WebLinkTests.Run(data);
    checks+=WebIconTests.Run(data);

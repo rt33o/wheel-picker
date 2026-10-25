@@ -34,7 +34,7 @@ namespace WheelPicker {
    var titleIcon=AppBranding.Icon(18);titleIcon.Margin=new Thickness(0,0,8,0);titleIcon.VerticalAlignment=VerticalAlignment.Center;titlebar.Children.Add(titleIcon);var title=UI.Text("WheelPicker",12,UI.Muted);title.VerticalAlignment=VerticalAlignment.Center;titlebar.Children.Add(title);root.Children.Add(titlebar);
    var body=new Grid();body.ColumnDefinitions.Add(new ColumnDefinition{Width=new GridLength(210)});body.ColumnDefinitions.Add(new ColumnDefinition());Grid.SetRow(body,1);root.Children.Add(body);
    var side=new DockPanel{Margin=new Thickness(16,20,12,22),LastChildFill=true};
-   var about=UI.Text("v"+typeof(SettingsWindow).Assembly.GetName().Version.ToString(3)+"\n\n"+L.T("POWERTOYS RUN\nКоманда: wheel\n\nКолесо также работает\nсамостоятельно."),10,UI.Muted);about.LineHeight=18;about.Margin=new Thickness(12,20,0,0);DockPanel.SetDock(about,Dock.Bottom);side.Children.Add(about);
+   var about=UI.Text("v"+typeof(SettingsWindow).Assembly.GetName().Version.ToString(3),10,UI.Muted);about.LineHeight=18;about.Margin=new Thickness(12,20,0,0);DockPanel.SetDock(about,Dock.Bottom);side.Children.Add(about);
    var menu=new StackPanel();var logo=UI.Halloween?Seasonal.Pumpkin(42):AppBranding.Icon(46);logo.HorizontalAlignment=HorizontalAlignment.Left;logo.Margin=new Thickness(10,0,0,4);menu.Children.Add(logo);
    var brand=UI.Text("WheelPicker",20,UI.Ink);brand.FontWeight=FontWeights.SemiBold;brand.Margin=new Thickness(10,0,0,4);menu.Children.Add(brand);var sub=UI.Text(L.T("Настройки"),12,UI.Muted);sub.Margin=new Thickness(10,0,0,30);menu.Children.Add(sub);
    string[] names={L.T("Приложения и группы"),L.T("Колесо"),L.T("Питомец"),L.T("Общие")};string[] icons={"\uE8A5","\uE713","\uE734","\uE115"};navigation=new Button[4];
@@ -61,7 +61,7 @@ namespace WheelPicker {
    var copy=SectionIntro(L.T("Приложения и группы"),L.T("Программы, ссылки и команды в вашем колесе."));copy.Margin=new Thickness(0,0,16,0);
    var tools=new WrapPanel{Margin=new Thickness(0,16,0,10)};var add=UI.Button(L.T("+  Добавить"),Add);EnableExternalDrop(add);tools.Children.Add(add);var group=UI.Button(L.T("Создать группу"),AddGroup);group.Margin=new Thickness(8,0,0,0);tools.Children.Add(group);var commands=UI.Button(L.T("Группа команд"),delegate{AddGroup(true);});commands.Margin=new Thickness(8,0,0,0);tools.Children.Add(commands);copy.Children.Add(tools);appCount=UI.Text("",12,UI.Muted);copy.Children.Add(appCount);header.Children.Add(copy);
    previewHost=new Border{Width=180,Height=180,IsHitTestVisible=false,Focusable=false,ToolTip=L.T("Предпросмотр текущего колеса")};Grid.SetColumn(previewHost,1);header.Children.Add(previewHost);page.Children.Add(header);RefreshPreview();
-   var help=UI.Text(L.T("Тяните за ≡ · В центр группы — переместить внутрь · К краю строки — изменить порядок"),11,UI.Muted);help.Margin=new Thickness(0,0,0,14);page.Children.Add(help);apps=new StackPanel();page.Children.Add(apps);RefreshApps();
+   var help=UI.Text(L.T("Тяните строку · Центр: объединить или добавить в группу · Край: изменить порядок"),11,UI.Muted);help.Margin=new Thickness(0,0,0,14);page.Children.Add(help);apps=new StackPanel();page.Children.Add(apps);RefreshApps();
   }
   private void BuildWheelPage(StackPanel page) {
    page.Children.Add(SectionIntro(L.T("Колесо"),L.T("Настройте вызов колеса и выбор действий.")));

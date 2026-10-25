@@ -4,7 +4,7 @@
   "IsGlobal": false,
   "Name": "WheelPicker",
   "Author": "WheelPicker",
-  "Version": "1.6.1",
+  "Version": "1.6.2",
   "Language": "csharp",
   "Website": "https://github.com/rt33o/wheel-picker",
   "ExecuteFileName": "Community.PowerToys.Run.Plugin.WheelPicker.dll",
