@@ -20,7 +20,8 @@ namespace WheelPicker {
   private ComboBox mode,position,theme,language,petKind;
   private CheckBox autoStart,closeOnRepeat,showForkBounds,showOrbitCat;
   private Border forkPreviewHost;
-  private Slider activationDelay,forkOutward,forkSide,orbitCatSpeed;
+  private Slider activationDelay,forkOutward,forkSide,orbitCatSpeed,wheelDiameter,wheelIcons,wheelText;
+  private Border sizePreviewHost;
   private Border saveToast;
   private Button undoButton;
   private readonly DeletionUndo deletionUndo=new DeletionUndo();
@@ -119,6 +120,7 @@ namespace WheelPicker {
    return true;
   }
   private void ReadControls() {
+   draft.WheelDiameter=(int)wheelDiameter.Value;draft.WheelIconPercent=(int)wheelIcons.Value;draft.WheelTextPercent=(int)wheelText.Value;
    draft.OrbitCatSpeed=orbitCatSpeed.Value;
    draft.OrbitPet=petKind.SelectedIndex==1?"cat":petKind.SelectedIndex==2?"bat":"theme";
    draft.HoldToSelect=mode.SelectedIndex==1;draft.AtCursor=position.SelectedIndex==0;draft.Dark=theme.SelectedIndex!=0;draft.Halloween=theme.SelectedIndex==2;draft.Language=language.SelectedIndex==1?"en":"ru";
@@ -222,6 +224,7 @@ namespace WheelPicker {
    };
   }
   private void RefreshPreview() {
+   if(!renderingSettings)UpdateSizePreview();
    var crop=new Canvas{Width=520,Height=520,ClipToBounds=true};var wheel=new WheelView(draft);Canvas.SetLeft(wheel,-130);Canvas.SetTop(wheel,-130);crop.Children.Add(wheel);
    crop.Measure(new Size(520,520));crop.Arrange(new Rect(0,0,520,520));crop.UpdateLayout();
    var snapshot=new System.Windows.Media.Imaging.RenderTargetBitmap(520,520,96,96,PixelFormats.Pbgra32);snapshot.Render(crop);snapshot.Freeze();
@@ -246,7 +249,8 @@ namespace WheelPicker {
    if(appCount!=null)appCount.Text=draft.Items.Count+" / 10 "+L.T("секторов");UpdateDirtyState();
   }
   private void Move(int at,int delta) {int next=at+delta;if(next<0||next>=draft.Items.Count)return;var item=draft.Items[at];draft.Items.RemoveAt(at);draft.Items.Insert(next,item);RefreshApps();RefreshPreview();status.Text=L.T("Порядок изменён. Сохраните изменения.");}
-  private void Add() {if(draft.Items.Count>=10){status.Text=L.T("В колесе уже 10 секторов.");return;}var result=host.EditItem(null,this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text=L.T("Приложение добавлено. Сохраните изменения.");}}
+  private void Add() {AddSeed(null);}
+  private void AddSeed(LaunchItem seed) {if(draft.Items.Count>=10){ShowToast(L.T("Колесо заполнено"),L.T("В колесе уже 10 секторов."),false);return;}var result=host.EditItem(seed,this,true);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text=L.T("Приложение добавлено. Сохраните изменения.");}}
   private void AddGroup() {AddGroup(false);}
   private void AddGroup(bool commands) {if(draft.Items.Count>=10){status.Text=L.T("В колесе уже 10 секторов.");return;}var result=host.EditItem(new LaunchItem{Kind=commands?"commands":null,Children=new System.Collections.Generic.List<LaunchItem>()},this);if(result!=null){draft.Items.Add(result);RefreshApps();RefreshPreview();status.Text=L.T("Группа добавлена. Сохраните изменения.");}}
   private void Edit(int at) {var result=host.EditItem(draft.Items[at],this);if(result!=null){draft.Items[at]=result;RefreshApps();RefreshPreview();status.Text=L.T("Приложение изменено. Сохраните изменения.");}}
@@ -268,9 +272,10 @@ namespace WheelPicker {
   private string iconTarget;
   private bool applyingProgram;
   internal ItemDialog(LaunchItem item):this(item,false,false) {}
-  internal ItemDialog(LaunchItem item,bool commandOnly,bool appsOnly) {
-   UI.ApplyWindowTheme(this);editing=item!=null;iconTarget=item==null?null:item.IconTarget;webIconData=item==null?null:item.WebIconData;
-   Title=item==null?L.T("Добавить приложение"):L.T("Изменить приложение");Width=640;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;ShowInTaskbar=false;
+  internal ItemDialog(LaunchItem item,bool commandOnly,bool appsOnly):this(item,commandOnly,appsOnly,false) {}
+  internal ItemDialog(LaunchItem item,bool commandOnly,bool appsOnly,bool adding) {
+   UI.ApplyWindowTheme(this);editing=item!=null&&!adding;iconTarget=item==null?null:item.IconTarget;webIconData=item==null?null:item.WebIconData;
+   Title=editing?L.T("Изменить приложение"):L.T("Добавить приложение");Width=640;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;ShowInTaskbar=false;
    var panel=new StackPanel{Margin=new Thickness(26)};
    heading=UI.Text(Title,24,UI.Ink);heading.FontWeight=FontWeights.SemiBold;panel.Children.Add(heading);
    var desc=UI.Text(L.T("Добавьте приложение, ссылку на сайт или команду для вставки с клавиатуры."),12,UI.Muted);desc.Margin=new Thickness(0,8,0,16);panel.Children.Add(desc);
@@ -292,7 +297,7 @@ namespace WheelPicker {
    target.TextChanged+=delegate{if(!applyingProgram){iconTarget=null;string normalized;if(entryType.SelectedIndex!=2&&WebLinks.HasScheme(target.Text)&&WebLinks.TryNormalize(target.Text,false,out normalized))entryType.SelectedIndex=1;}validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();};UpdateEntryType();
    var buttons=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(0,24,0,0)};
    var cancel=UI.Button(L.T("Отмена"),delegate{DialogResult=false;});cancel.IsCancel=true;buttons.Children.Add(cancel);
-   var save=UI.Button(item==null?L.T("Добавить"):L.T("Готово"),Save);UI.Primary(save);save.Margin=new Thickness(8,0,0,0);save.IsDefault=true;buttons.Children.Add(save);panel.Children.Add(buttons);Content=panel;Loaded+=delegate{name.Focus();};Closed+=delegate{if(iconPreviewTimer!=null)iconPreviewTimer.Stop();};
+   var save=UI.Button(editing?L.T("Готово"):L.T("Добавить"),Save);UI.Primary(save);save.Margin=new Thickness(8,0,0,0);save.IsDefault=true;buttons.Children.Add(save);panel.Children.Add(buttons);Content=panel;Loaded+=delegate{name.Focus();};Closed+=delegate{if(iconPreviewTimer!=null)iconPreviewTimer.Stop();};
   }
   private TextBox Field(StackPanel p,string label,string value){TextBlock unused;return Field(p,label,value,out unused);}
   private TextBox Field(StackPanel p,string label,string value,out TextBlock l) {l=UI.Text(label,11,UI.Muted);l.Margin=new Thickness(0,12,0,6);p.Children.Add(l);var t=new TextBox{Text=value??""};p.Children.Add(t);return t;}
@@ -334,7 +339,7 @@ namespace WheelPicker {
    }
    if(String.IsNullOrWhiteSpace(name.Text)||String.IsNullOrWhiteSpace(target.Text)){MessageBox.Show(this,L.T("Введите название и выберите программу."),"WheelPicker");return;}
    string path=target.Text.Trim().Trim('"');string expanded=Environment.ExpandEnvironmentVariables(path);
-   if(Path.IsPathRooted(expanded)&&!File.Exists(expanded)){MessageBox.Show(this,L.T("Указанный файл не найден."),"WheelPicker");return;}
+   if(Path.IsPathRooted(expanded)&&!File.Exists(expanded)&&!Directory.Exists(expanded)){MessageBox.Show(this,L.T("Указанный файл не найден."),"WheelPicker");return;}
    if(!String.IsNullOrWhiteSpace(workdir.Text)&&!Directory.Exists(Environment.ExpandEnvironmentVariables(workdir.Text.Trim()))){MessageBox.Show(this,L.T("Рабочая папка не найдена."),"WheelPicker");return;}
    Result=new LaunchItem{Name=name.Text.Trim(),Target=path,Arguments=arguments.Text,WorkingDirectory=workdir.Text.Trim(),IconTarget=iconTarget,RepeatLaunch=repeatLaunch.SelectedIndex==1?"allow":repeatLaunch.SelectedIndex==2?"hide":null};DialogResult=true;
   }

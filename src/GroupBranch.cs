@@ -30,9 +30,9 @@ namespace WheelPicker {
     var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),Cursor=System.Windows.Input.Cursors.Hand,ToolTip=group.Children[i].IsCommand?group.Children[i].Name+"\n"+group.Children[i].Target:group.Children[i].Name};
     shape.MouseLeftButtonUp+=delegate{Select(at);if(Pick!=null)Pick();};shapes[i]=shape;items.Children.Add(shape);
     var content=new StackPanel{Width=Math.Min(112,Math.Max(54,2*290*Math.Sin(step*Math.PI/360)*.85)),IsHitTestVisible=false};
-    var icon=new Grid{Width=32,Height=28};icon.Children.Add(UI.ItemIcon(group.Children[i],25));
+    var icon=new Grid{Width=32,Height=Math.Max(28,25*c.WheelIconPercent/100.0)};icon.Children.Add(UI.ItemIcon(group.Children[i],25*c.WheelIconPercent/100.0));
     if(running[i])icon.Children.Add(new Ellipse{Width=7,Height=7,Fill=UI.Accent,Stroke=UI.Surface,StrokeThickness=1.2,HorizontalAlignment=HorizontalAlignment.Right,VerticalAlignment=VerticalAlignment.Bottom});content.Children.Add(icon);
-    var label=UI.Text(group.Children[i].Name,11,UI.Ink);label.MaxHeight=32;label.TextAlignment=TextAlignment.Center;label.Margin=new Thickness(0,5,0,0);content.Children.Add(label);
+    var label=UI.Text(group.Children[i].Name,11*c.WheelTextPercent/100.0,UI.Ink);label.MaxHeight=32*c.WheelTextPercent/100.0;label.TextAlignment=TextAlignment.Center;label.Margin=new Thickness(0,5,0,0);content.Children.Add(label);
     var point=ItemPoint(i);SetLeft(content,point.X+130-content.Width/2);SetTop(content,point.Y+130-28);items.Children.Add(content);
    }
   }
@@ -92,7 +92,7 @@ namespace WheelPicker {
    fork.Children.Add(new Path{Data=WheelView.Sector(338,445,start,childSpan),Fill=UI.Surface,RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false});
    for(int slot=0;slot<AvailableActions.Length;slot++) {
     int i=AvailableActions[slot],action=i;var geometry=WheelView.Sector(349,445,start+slot*part,part);var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),Cursor=System.Windows.Input.Cursors.Hand};shape.MouseLeftButtonUp+=delegate{SelectAction(action);if(Pick!=null)Pick();};System.Windows.Automation.AutomationProperties.SetName(shape,ActionCaption(i)+" "+SelectedItem.Name);fork.Children.Add(shape);actionShapes[i]=shape;
-    var point=ActionPoint(i);var label=ForkActions.Label(i==ForkActions.Focus?L.T("Перейти\nк окну"):ActionCaption(i).Replace(L.T("Открыть "),L.T("Открыть\n")).Replace(L.T("Закрыть все окна"),L.T("Закрыть\nвсе окна")),geometry,point,11);
+    var point=ActionPoint(i);var label=ForkActions.Label(i==ForkActions.Focus?L.T("Перейти\nк окну"):ActionCaption(i).Replace(L.T("Открыть "),L.T("Открыть\n")).Replace(L.T("Закрыть все окна"),L.T("Закрыть\nвсе окна")),geometry,point,11*config.WheelTextPercent/100.0);
     SetLeft(label,point.X+130-label.DesiredSize.Width/2);SetTop(label,point.Y+130-label.DesiredSize.Height/2);fork.Children.Add(label);
    }
    if(config.ShowForkBounds){var color=((SolidColorBrush)UI.Accent).Color;color.A=36;BoundsOverlay=new Path{Data=ForkHitGeometry(),Fill=new SolidColorBrush(color),Stroke=UI.Accent,StrokeThickness=1.5,StrokeDashArray=new DoubleCollection{4,3},RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false};fork.Children.Add(BoundsOverlay);}

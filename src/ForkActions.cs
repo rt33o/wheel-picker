@@ -26,7 +26,7 @@ namespace WheelPicker {
   }
   internal static TextBlock Label(string caption,Geometry sector,Point center,double preferredSize) {
    var label=UI.Text(caption,preferredSize,UI.Ink);label.FontWeight=FontWeights.SemiBold;label.TextAlignment=TextAlignment.Center;label.IsHitTestVisible=false;
-   for(double font=preferredSize;font>=9;font-=.5)for(int width=112;width>=32;width-=4) {
+   for(double font=Math.Max(9,preferredSize);font>=9;font-=.5)for(int width=112;width>=32;width-=4) {
     label.FontSize=font;label.Width=width;label.Measure(new Size(width,Double.PositiveInfinity));var size=label.DesiredSize;
     if(Fits(sector,new Rect(center.X-size.Width/2-1,center.Y-size.Height/2-1,size.Width+2,size.Height+2)))return label;
    }
