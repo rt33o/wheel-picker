@@ -6,6 +6,11 @@ namespace WheelPicker {
   internal static void Set(string language){Language=language=="en"?"en":"ru";}
   internal static string T(string russian){string value;return Language=="en"&&English.TryGetValue(russian,out value)?value:russian;}
   internal static readonly Dictionary<string,string> English=new Dictionary<string,string>(StringComparer.Ordinal) {
+   {"Не удалось создать группу","Could not create group"},
+   {"Группа создана","Group created"},{"Группа создана. Сохраните изменения.","Group created. Save your changes."},{"Сохраните изменения, чтобы применить группу к колесу.","Save your changes to apply this group to the wheel."},
+   {"Вложенные группы не поддерживаются.","Nested groups are not supported."},{"Команды можно объединять только с командами.","Commands can only be grouped with other commands."},{"Нельзя объединить два одинаковых элемента.","Two identical items cannot be grouped."},
+   {"В центр — объединить, к краю — изменить порядок","Drop in the center to group, at an edge to reorder"},{"Отпустите, чтобы создать группу: ","Release to create a group: "},
+   {"Тяните строку · Центр: объединить или добавить в группу · Край: изменить порядок","Drag a row · Center: group or add to a group · Edge: reorder"},
    {"Диаметр колеса: 360–640, значки и текст: 80–125%.","Wheel diameter: 360–640, icons and text: 80–125%."},
    {"Перетащите один файл, ярлык, папку или ссылку http/https.","Drop one file, shortcut, folder, or http/https link."},{"Добавляйте по одному элементу за раз.","Add one item at a time."},
    {"Ярлык сайта должен содержать ссылку http:// или https://.","The website shortcut must contain an http:// or https:// link."},

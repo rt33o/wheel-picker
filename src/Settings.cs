@@ -7,7 +7,7 @@ using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Shell;
 namespace WheelPicker {
- internal enum AppDropPlacement {None,Before,After,IntoGroup}
+ internal enum AppDropPlacement {None,Before,After,IntoGroup,CreateGroup}
  internal sealed partial class SettingsWindow:Window {
   private readonly Host host;
   private Configuration draft;
@@ -153,11 +153,20 @@ namespace WheelPicker {
   }
   internal AppDropPlacement DropPlacement(LaunchItem source,LaunchItem target,double verticalFraction) {
    if(source==null||target==null||!draft.Items.Contains(source)||!draft.Items.Contains(target)||Object.ReferenceEquals(source,target))return AppDropPlacement.None;
-   if(!source.IsGroup&&target.IsGroup&&verticalFraction>=.22&&verticalFraction<=.78)return AppDropPlacement.IntoGroup;
+   if(!source.IsGroup&&verticalFraction>=.22&&verticalFraction<=.78)return target.IsGroup?AppDropPlacement.IntoGroup:AppDropPlacement.CreateGroup;
    return verticalFraction<.5?AppDropPlacement.Before:AppDropPlacement.After;
   }
   internal bool ApplyDrop(LaunchItem source,LaunchItem target,AppDropPlacement placement) {
    if(DropPlacement(source,target,.5)==AppDropPlacement.None||placement==AppDropPlacement.None)return false;
+   if(placement==AppDropPlacement.CreateGroup) {
+    string error=NewGroupError(source,target);if(error!=null){ShowToast(L.T("Не удалось создать группу"),error,false);return false;}
+    var seed=new LaunchItem{Kind=source.IsCommand?"commands":null,Children=new System.Collections.Generic.List<LaunchItem>{target,source}};
+    var group=host.EditItem(seed,this);if(group==null||DropPlacement(source,target,.5)==AppDropPlacement.None)return false;
+    bool moveSource=AppActivation.GroupContains(group,source,-1),moveTarget=AppActivation.GroupContains(group,target,-1);
+    if(draft.Items.Count+1-(moveSource?1:0)-(moveTarget?1:0)>10){ShowToast(L.T("Колесо заполнено"),L.T("В колесе уже 10 секторов."),false);return false;}
+    int at=draft.Items.IndexOf(target);if(moveTarget)draft.Items[at]=group;else draft.Items.Insert(at,group);if(moveSource)draft.Items.Remove(source);
+    RefreshApps();RefreshPreview();status.Text=L.T("Группа создана. Сохраните изменения.");ShowToast(L.T("Группа создана"),L.T("Сохраните изменения, чтобы применить группу к колесу."),true);return true;
+   }
    if(placement==AppDropPlacement.IntoGroup) {
     if(source.IsGroup||!target.IsGroup)return false;
     if(!target.Accepts(source)){ShowToast(L.T("Другой тип группы"),L.T("Выберите группу соответствующего типа: команды или приложения."),false);return false;}
@@ -168,10 +177,16 @@ namespace WheelPicker {
    }
    Reorder(source,target,placement==AppDropPlacement.After);return true;
   }
+  private static string NewGroupError(LaunchItem source,LaunchItem target) {
+   if(source.IsGroup||target.IsGroup)return L.T("Вложенные группы не поддерживаются.");
+   if(source.IsCommand!=target.IsCommand)return L.T("Команды можно объединять только с командами.");
+   if(AppActivation.SameApplication(source,target))return L.T("Нельзя объединить два одинаковых элемента.");
+   return null;
+  }
   private void BeginDragVisual(Border source,LaunchItem item) {
    var row=new DockPanel();var icon=UI.ItemIcon(item,30);icon.Margin=new Thickness(0,0,12,0);DockPanel.SetDock(icon,Dock.Left);row.Children.Add(icon);
    var labels=new StackPanel();var title=UI.Text(item.Name,13,UI.Ink);title.FontWeight=FontWeights.SemiBold;title.MaxWidth=290;title.TextWrapping=TextWrapping.NoWrap;title.TextTrimming=TextTrimming.CharacterEllipsis;labels.Children.Add(title);
-   dragCaption=UI.Text(L.T("Выберите группу или место в списке"),11,UI.Muted);dragCaption.MaxWidth=330;dragCaption.Margin=new Thickness(0,5,0,0);labels.Children.Add(dragCaption);row.Children.Add(labels);
+   dragCaption=UI.Text(L.T("В центр — объединить, к краю — изменить порядок"),11,UI.Muted);dragCaption.MaxWidth=330;dragCaption.Margin=new Thickness(0,5,0,0);labels.Children.Add(dragCaption);row.Children.Add(labels);
    dragGhost=new Border{Child=row,Background=UI.Surface,BorderBrush=UI.Accent,BorderThickness=new Thickness(1.5),CornerRadius=new CornerRadius(10),Padding=new Thickness(14,11,18,11),Opacity=.96,IsHitTestVisible=false,Effect=new System.Windows.Media.Effects.DropShadowEffect{Color=Colors.Black,Opacity=.25,BlurRadius=18,ShadowDepth=5}};
    dragLayer.Children.Add(dragGhost);source.Opacity=.35;PositionDragVisual();
   }
@@ -184,7 +199,11 @@ namespace WheelPicker {
    var placement=DropPlacement(source,target,fraction);
    if(placement==AppDropPlacement.None){if(dragCaption!=null)dragCaption.Text=L.T("Выберите другую строку");return;}
    card.BorderBrush=UI.Accent;
-   if(placement==AppDropPlacement.IntoGroup) {
+   if(placement==AppDropPlacement.CreateGroup) {
+    card.BorderThickness=new Thickness(2.5);card.Background=(Brush)Application.Current.Resources["Tint"];
+    details.Text=NewGroupError(source,target)??L.T("Отпустите, чтобы создать группу: ")+target.Name+" + "+source.Name;
+    if(dragCaption!=null)dragCaption.Text=details.Text;
+   } else if(placement==AppDropPlacement.IntoGroup) {
     bool duplicate=AppActivation.GroupContains(target,source,-1),full=target.Children.Count>=target.GroupLimit;card.BorderThickness=new Thickness(2.5);card.Background=(Brush)Application.Current.Resources["Tint"];
     details.Text=!target.Accepts(source)?L.T("Выберите группу соответствующего типа: команды или приложения."):duplicate?(source.IsCommand?L.T("Эта команда уже есть в группе."):source.IsWebLink?L.T("Эта ссылка уже есть в группе."):L.T("Это приложение уже есть в группе")):full?target.GroupLimitMessage:L.T("Отпустите, чтобы переместить «")+source.Name+"» · "+target.Children.Count+" / "+target.GroupLimit+" → "+(target.Children.Count+1)+" / "+target.GroupLimit;
     if(dragCaption!=null)dragCaption.Text=!target.Accepts(source)||duplicate||full?details.Text:L.T("В группу «")+target.Name+"»";
@@ -194,33 +213,46 @@ namespace WheelPicker {
    }
   }
   private static string ItemDetails(LaunchItem item) {return !item.IsGroup?item.Target:item.Children.Count==0?(item.IsCommandGroup?L.T("Пустая группа команд · до 10 команд"):L.T("Пустая группа · Перетащите сюда приложение")):(item.IsCommandGroup?L.T("Команды · "):L.T("Группа · "))+String.Join(" · ",item.Children.ConvertAll(child=>child.Name));}
-  private void EnableDrag(Border card,FrameworkElement grip,LaunchItem item,TextBlock details) {
-   Point start=new Point();
-   grip.PreviewMouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){start=e.GetPosition(grip);grip.CaptureMouse();e.Handled=true;};
-   grip.PreviewMouseLeftButtonUp+=delegate{if(Mouse.Captured==grip)grip.ReleaseMouseCapture();};
-   grip.PreviewMouseMove+=delegate(object sender,MouseEventArgs e) {
-    if(e.LeftButton!=MouseButtonState.Pressed){if(Mouse.Captured==grip)grip.ReleaseMouseCapture();return;}Point point=e.GetPosition(grip);
+  internal static bool IsRowDragSurface(Border card,DependencyObject origin) {
+   while(origin!=null) {
+    if(origin is System.Windows.Controls.Primitives.ButtonBase)return false;
+    if(Object.ReferenceEquals(origin,card))return true;
+    var content=origin as FrameworkContentElement;origin=content!=null?content.Parent:origin is Visual?VisualTreeHelper.GetParent(origin):LogicalTreeHelper.GetParent(origin);
+   }
+   return false;
+  }
+  private void EnableDrag(Border card,LaunchItem item,TextBlock details) {
+   Point start=new Point();bool armed=false;card.Cursor=Cursors.SizeAll;
+   card.PreviewMouseLeftButtonDown+=delegate(object sender,MouseButtonEventArgs e){armed=IsRowDragSurface(card,e.OriginalSource as DependencyObject);if(!armed)return;start=e.GetPosition(card);armed=card.CaptureMouse();e.Handled=armed;};
+   card.PreviewMouseLeftButtonUp+=delegate{armed=false;if(Mouse.Captured==card)card.ReleaseMouseCapture();};
+   card.LostMouseCapture+=delegate{armed=false;};
+   card.PreviewMouseMove+=delegate(object sender,MouseEventArgs e) {
+    if(!armed)return;if(e.LeftButton!=MouseButtonState.Pressed){armed=false;if(Mouse.Captured==card)card.ReleaseMouseCapture();return;}Point point=e.GetPosition(card);
     if(Math.Abs(point.X-start.X)<SystemParameters.MinimumHorizontalDragDistance && Math.Abs(point.Y-start.Y)<SystemParameters.MinimumVerticalDragDistance)return;
-    if(Mouse.Captured==grip)grip.ReleaseMouseCapture();
+    armed=false;if(Mouse.Captured==card)card.ReleaseMouseCapture();
     var timer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(16)};timer.Tick+=delegate{PositionDragVisual();};
     BeginDragVisual(card,item);timer.Start();
-    try{DragDrop.DoDragDrop(grip,new DataObject(typeof(LaunchItem),item),DragDropEffects.Move);}finally{timer.Stop();EndDragVisual(card);card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);}e.Handled=true;
+    try{DragDrop.DoDragDrop(card,new DataObject(typeof(LaunchItem),item),DragDropEffects.Move);}finally{timer.Stop();EndDragVisual(card);card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);}e.Handled=true;
    };
    card.AllowDrop=true;
    card.DragOver+=delegate(object sender,DragEventArgs e) {
     var source=e.Data.GetDataPresent(typeof(LaunchItem))?e.Data.GetData(typeof(LaunchItem)) as LaunchItem:null;
-    bool valid=DropPlacement(source,item,.5)!=AppDropPlacement.None;
-    e.Effects=valid?DragDropEffects.Move:DragDropEffects.None;e.Handled=true;
+    var placement=DropPlacement(source,item,e.GetPosition(card).Y/Math.Max(1,card.ActualHeight));bool valid=placement!=AppDropPlacement.None;
+    bool canDrop=valid&&(placement!=AppDropPlacement.CreateGroup||NewGroupError(source,item)==null);
+    e.Effects=canDrop?DragDropEffects.Move:DragDropEffects.None;e.Handled=true;
     if(valid) {
      ShowDropCue(card,details,source,item,e.GetPosition(card).Y/Math.Max(1,card.ActualHeight));PositionDragVisual();
      if(pageScroll!=null){double y=e.GetPosition(pageScroll).Y;if(y<45)pageScroll.ScrollToVerticalOffset(pageScroll.VerticalOffset-16);else if(y>pageScroll.ActualHeight-45)pageScroll.ScrollToVerticalOffset(pageScroll.VerticalOffset+16);}
     }
    };
-   card.DragLeave+=delegate{card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);if(dragCaption!=null)dragCaption.Text=L.T("Выберите группу или место в списке");};
+   card.DragLeave+=delegate{card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);if(dragCaption!=null)dragCaption.Text=L.T("В центр — объединить, к краю — изменить порядок");};
    card.Drop+=delegate(object sender,DragEventArgs e) {
     var source=e.Data.GetDataPresent(typeof(LaunchItem))?e.Data.GetData(typeof(LaunchItem)) as LaunchItem:null;
     var placement=DropPlacement(source,item,e.GetPosition(card).Y/Math.Max(1,card.ActualHeight));card.BorderBrush=UI.Line;card.BorderThickness=new Thickness(1);card.Background=UI.Surface;details.Text=ItemDetails(item);
-    e.Effects=ApplyDrop(source,item,placement)?DragDropEffects.Move:DragDropEffects.None;e.Handled=true;
+    if(placement==AppDropPlacement.CreateGroup&&NewGroupError(source,item)==null) {
+     // Return from OLE Drop and remove its drag ghost before opening a modal editor.
+     e.Effects=DragDropEffects.Move;Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,new Action(delegate{if(IsVisible)ApplyDrop(source,item,placement);}));
+    } else e.Effects=ApplyDrop(source,item,placement)?DragDropEffects.Move:DragDropEffects.None;e.Handled=true;
    };
   }
   private void RefreshPreview() {
@@ -243,7 +275,7 @@ namespace WheelPicker {
     var down=UI.Button("↓",delegate{Move(at,1);});down.IsEnabled=i<draft.Items.Count-1;down.ToolTip=L.T("Позже в колесе");actions.Children.Add(down);
     var edit=UI.Button(L.T("Изменить"),delegate{Edit(at);});edit.Margin=new Thickness(6,0,0,0);actions.Children.Add(edit);
     var remove=UI.Button("×",delegate{RemoveItem(at);});remove.Margin=new Thickness(6,0,0,0);remove.ToolTip=L.T("Убрать из колеса");actions.Children.Add(remove);Grid.SetColumn(actions,2);row.Children.Add(actions);
-    var card=UI.Card(row);card.Padding=new Thickness(14,10,14,10);card.Margin=new Thickness(0,0,0,6);EnableDrag(card,grip,item,path);apps.Children.Add(card);
+    var card=UI.Card(row);card.Padding=new Thickness(14,10,14,10);card.Margin=new Thickness(0,0,0,6);EnableDrag(card,item,path);apps.Children.Add(card);
    }
    if(draft.Items.Count==0){var empty=UI.Text(L.T("Здесь появятся ваши приложения. Нажмите «Добавить»."),13,UI.Muted);empty.Margin=new Thickness(15);apps.Children.Add(UI.Card(empty));}
    if(appCount!=null)appCount.Text=draft.Items.Count+" / 10 "+L.T("секторов");UpdateDirtyState();

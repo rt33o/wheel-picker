@@ -28,6 +28,10 @@ namespace WheelPicker {
     var wheel=new WheelView(draft);wheel.Select(1);wheel.SelectGroupChild(0);wheel.StepGroupChild(1);wheel.UpdatePointer(260+164*Math.Cos(Math.PI/6),260+164*Math.Sin(Math.PI/6));
     Check(wheel.HasGroup&&!wheel.HasBranch&&wheel.SelectedItem==null,"Empty groups safely support pointer and keyboard selection");
     var cards=(StackPanel)Field(window,"apps");var sourceCard=(Border)cards.Children[0];var targetCard=(Border)cards.Children[1];var details=(TextBlock)((StackPanel)((Grid)targetCard.Child).Children[1]).Children[1];
+    var row=(Grid)sourceCard.Child;var labels=(StackPanel)row.Children[1];var actions=(StackPanel)row.Children[2];
+    Check(SettingsWindow.IsRowDragSurface(sourceCard,sourceCard)&&SettingsWindow.IsRowDragSurface(sourceCard,row.Children[0])&&SettingsWindow.IsRowDragSurface(sourceCard,labels.Children[0])&&SettingsWindow.IsRowDragSurface(sourceCard,labels.Children[1]),"Card padding, icon, title and path can all start a row drag");
+    foreach(Button action in actions.Children){action.ApplyTemplate();Check(!SettingsWindow.IsRowDragSurface(sourceCard,action)&&!SettingsWindow.IsRowDragSurface(sourceCard,System.Windows.Media.VisualTreeHelper.GetChild(action,0)),"Action buttons and their visual children keep normal click behavior");}
+    Check(!SettingsWindow.IsRowDragSurface(sourceCard,targetCard),"Another row cannot arm this row's drag");
     typeof(SettingsWindow).GetMethod("BeginDragVisual",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(window,new object[]{sourceCard,app});
     var ghost=(Border)Field(window,"dragGhost");Check(sourceCard.Opacity<.5&&ghost!=null&&!ghost.IsHitTestVisible,"Drag preview follows cursor without stealing pointer input and dims source");
     window.ShowDropCue(targetCard,details,app,target,.5);Check(details.Text.Contains("0 / 3 → 1 / 3")&&targetCard.BorderThickness.Left>2,"Group highlights exact transfer and pending member count");
