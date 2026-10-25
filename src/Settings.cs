@@ -22,6 +22,8 @@ namespace WheelPicker {
   private Border forkPreviewHost;
   private Slider activationDelay,forkOutward,forkSide,orbitCatSpeed;
   private Border saveToast;
+  private Button undoButton;
+  private readonly DeletionUndo deletionUndo=new DeletionUndo();
   private TextBlock notificationTitle,notificationMessage,notificationSymbol;
   private Canvas dragLayer;
   private Border dragGhost;
@@ -33,12 +35,13 @@ namespace WheelPicker {
    WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.CanResize;
    WindowChrome.SetWindowChrome(this,new WindowChrome{CaptionHeight=40,CornerRadius=new CornerRadius(12),GlassFrameThickness=new Thickness(0),ResizeBorderThickness=new Thickness(6),UseAeroCaptionButtons=false});
    PreviewKeyDown+=CaptureShortcut;
+   PreviewKeyDown+=delegate(object sender,KeyEventArgs e){if(!e.Handled&&!recording&&deletionUndo.Count>0&&DeletionUndo.IsShortcut(e.Key,Keyboard.Modifiers,Keyboard.FocusedElement??e.OriginalSource)){e.Handled=true;UndoRemoval();}};
    WebIcons.Changed+=RefreshPreview;
    Closed+=delegate{WebIcons.Changed-=RefreshPreview;appearanceRevision++;if(petPreview!=null)petPreview.Stop();if(toastTimer!=null)toastTimer.Stop();if(recording){recording=false;host.ResumeHotkey();}UI.Configure(host.Config);};
    Loaded+=delegate{UpdatePetAnimation();};IsVisibleChanged+=delegate{UpdatePetAnimation();};StateChanged+=delegate{UpdatePetAnimation();};
    Reload();
   }
-  internal void Reload() {RenderSettings(host.Config.Copy());}
+  internal void Reload() {deletionUndo.Clear();RenderSettings(host.Config.Copy());}
   private void PreviewAppearance() {
    if(recording){status.Text=L.T("Сначала завершите ввод сочетания.");return;}
    // Finish closing the old ComboBox popup before replacing its visual tree.
@@ -94,11 +97,26 @@ namespace WheelPicker {
   }
   private void ShowToast(string title,string message,bool saved) {
    if(toastTimer!=null)toastTimer.Stop();
+   undoButton.Visibility=Visibility.Collapsed;saveToast.IsHitTestVisible=false;
    notificationTitle.Text=title;notificationMessage.Text=message;notificationSymbol.Text=saved?"✓":"!";
    saveToast.Visibility=Visibility.Visible;
    toastTimer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromSeconds(3)};
    toastTimer.Tick+=delegate{toastTimer.Stop();saveToast.Visibility=Visibility.Collapsed;};
    toastTimer.Start();
+  }
+  internal void RemoveItem(int index) {
+   if(!deletionUndo.RemoveAt(draft.Items,index))return;
+   RefreshApps();RefreshPreview();ShowRemovalToast();
+  }
+  private void ShowRemovalToast() {
+   ShowToast(L.T("Элемент удалён"),"«"+deletionUndo.Next.Name+L.T("» · Ctrl+Z — вернуть"),false);notificationSymbol.Text="↶";undoButton.Visibility=Visibility.Visible;saveToast.IsHitTestVisible=true;toastTimer.Interval=TimeSpan.FromSeconds(8);
+  }
+  internal bool UndoRemoval() {
+   if(deletionUndo.Count==0)return false;
+   if(draft.Items.Count>=10){ShowToast(L.T("Колесо заполнено"),L.T("Освободите сектор, чтобы вернуть удалённый элемент."),false);return false;}
+   string name=deletionUndo.Next.Name;deletionUndo.Restore(draft.Items);RefreshApps();RefreshPreview();status.Text="«"+name+L.T("» восстановлено. Сохраните изменения.");
+   if(deletionUndo.Count>0)ShowRemovalToast();else ShowToast(L.T("Элемент восстановлен"),name,true);
+   return true;
   }
   private void ReadControls() {
    draft.OrbitCatSpeed=orbitCatSpeed.Value;
@@ -109,7 +127,7 @@ namespace WheelPicker {
   private static string CatSpeedLabel(double speed){return speed.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)+"× · "+(OrbitCat.OrbitSeconds/speed).ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)+L.T(" с на круг");}
   internal void ImportDraft(string path) {
    var info=new FileInfo(path);if(!info.Exists||info.Length>1024*1024)throw new InvalidDataException(L.T("Выберите файл настроек WheelPicker размером до 1 МБ."));
-   var imported=Configuration.Load(path);imported.Validate();RenderSettings(imported);
+   var imported=Configuration.Load(path);imported.Validate();deletionUndo.Clear();RenderSettings(imported);
    status.Text=L.T("Импортировано приложений: ")+draft.Items.Count+L.T(". Проверьте настройки и нажмите «Сохранить изменения».");
   }
   internal void ExportDraft(string path) {
@@ -221,7 +239,7 @@ namespace WheelPicker {
     var up=UI.Button("↑",delegate{Move(at,-1);});up.IsEnabled=i>0;up.ToolTip=L.T("Раньше в колесе");actions.Children.Add(up);
     var down=UI.Button("↓",delegate{Move(at,1);});down.IsEnabled=i<draft.Items.Count-1;down.ToolTip=L.T("Позже в колесе");actions.Children.Add(down);
     var edit=UI.Button(L.T("Изменить"),delegate{Edit(at);});edit.Margin=new Thickness(6,0,0,0);actions.Children.Add(edit);
-    var remove=UI.Button("×",delegate{draft.Items.RemoveAt(at);RefreshApps();RefreshPreview();status.Text=L.T("Приложение убрано. Нажмите «Сохранить изменения».");});remove.Margin=new Thickness(6,0,0,0);remove.ToolTip=L.T("Убрать из колеса");actions.Children.Add(remove);Grid.SetColumn(actions,2);row.Children.Add(actions);
+    var remove=UI.Button("×",delegate{RemoveItem(at);});remove.Margin=new Thickness(6,0,0,0);remove.ToolTip=L.T("Убрать из колеса");actions.Children.Add(remove);Grid.SetColumn(actions,2);row.Children.Add(actions);
     var card=UI.Card(row);card.Padding=new Thickness(14,10,14,10);card.Margin=new Thickness(0,0,0,6);EnableDrag(card,grip,item,path);apps.Children.Add(card);
    }
    if(draft.Items.Count==0){var empty=UI.Text(L.T("Здесь появятся ваши приложения. Нажмите «Добавить»."),13,UI.Muted);empty.Margin=new Thickness(15);apps.Children.Add(UI.Card(empty));}
@@ -237,6 +255,8 @@ namespace WheelPicker {
   internal LaunchItem Result;
   private TextBox name,target,arguments,workdir;
   private readonly ComboBox entryType;
+  private readonly ComboBox repeatLaunch;
+  private readonly StackPanel repeatRow;
   private readonly TextBlock heading,targetLabel,argumentsLabel,workdirLabel,linkHelp,validation;
   private readonly Button fileButton,browse;
   private readonly bool editing;
@@ -266,6 +286,7 @@ namespace WheelPicker {
    webIconStatus=UI.Text("",11,UI.Muted);webIconStatus.Margin=new Thickness(0,6,0,0);webIconRow.Children.Add(webIconStatus);panel.Children.Add(webIconRow);
    arguments=Field(panel,L.T("Аргументы (необязательно)"),item==null?"":item.Arguments,out argumentsLabel);
    workdir=Field(panel,L.T("Рабочая папка (необязательно)"),item==null?"":item.WorkingDirectory,out workdirLabel);
+   repeatRow=new StackPanel{Margin=new Thickness(0,12,0,0)};var repeatOptions=new DockPanel();repeatLaunch=new ComboBox{Width=220,ItemsSource=new[]{L.T("Автоматически"),L.T("Разрешать"),L.T("Скрывать")},SelectedIndex=item!=null&&item.RepeatLaunch=="allow"?1:item!=null&&item.RepeatLaunch=="hide"?2:0};System.Windows.Automation.AutomationProperties.SetName(repeatLaunch,L.T("Открывать повторно"));DockPanel.SetDock(repeatLaunch,Dock.Right);repeatOptions.Children.Add(repeatLaunch);var repeatLabel=UI.Text(L.T("Открывать повторно"),12,UI.Ink);repeatLabel.VerticalAlignment=VerticalAlignment.Center;repeatOptions.Children.Add(repeatLabel);repeatRow.Children.Add(repeatOptions);var repeatHelp=UI.Text(L.T("Авто скрывает действие для известных приложений с одним окном, включая Postman. Для остальных оно доступно."),11,UI.Muted);repeatHelp.Margin=new Thickness(0,6,0,0);repeatRow.Children.Add(repeatHelp);panel.Children.Add(repeatRow);
    validation=UI.Text("",12,UI.Accent);validation.Margin=new Thickness(0,10,0,0);validation.Visibility=Visibility.Collapsed;panel.Children.Add(validation);
    entryType.SelectionChanged+=delegate{UpdateEntryType();};
    target.TextChanged+=delegate{if(!applyingProgram){iconTarget=null;string normalized;if(entryType.SelectedIndex!=2&&WebLinks.HasScheme(target.Text)&&WebLinks.TryNormalize(target.Text,false,out normalized))entryType.SelectedIndex=1;}validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();};UpdateEntryType();
@@ -276,11 +297,12 @@ namespace WheelPicker {
   private TextBox Field(StackPanel p,string label,string value){TextBlock unused;return Field(p,label,value,out unused);}
   private TextBox Field(StackPanel p,string label,string value,out TextBlock l) {l=UI.Text(label,11,UI.Muted);l.Margin=new Thickness(0,12,0,6);p.Children.Add(l);var t=new TextBox{Text=value??""};p.Children.Add(t);return t;}
   private void UpdateEntryType() {
-   bool link=entryType.SelectedIndex==1,command=entryType.SelectedIndex==2;Height=command?450:link?580:600;
+   bool link=entryType.SelectedIndex==1,command=entryType.SelectedIndex==2;Height=command?450:link?580:660;
    Title=heading.Text=command?(editing?L.T("Изменить команду"):L.T("Добавить команду")):link?(editing?L.T("Изменить ссылку"):L.T("Добавить ссылку")):(editing?L.T("Изменить приложение"):L.T("Добавить приложение"));
    targetLabel.Text=command?L.T("Текст команды"):link?L.T("Адрес сайта"):L.T("Программа или ярлык");target.MaxLength=command?Commands.MaximumLength:0;
    browse.Visibility=fileButton.Visibility=arguments.Visibility=argumentsLabel.Visibility=workdir.Visibility=workdirLabel.Visibility=link||command?Visibility.Collapsed:Visibility.Visible;
    webIconRow.Visibility=link?Visibility.Visible:Visibility.Collapsed;linkHelp.Visibility=link||command?Visibility.Visible:Visibility.Collapsed;
+   repeatRow.Visibility=link||command?Visibility.Collapsed:Visibility.Visible;
    linkHelp.Text=command?L.T("Текст вставляется в исходное активное окно без Enter. Например: .venv\\Scripts\\Activate.ps1. Буфер обмена не изменяется."):L.T("Откроется в браузере по умолчанию. Можно вставить адрес без https://. Если название не указано, используем домен сайта.");validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();
   }
   private void ScheduleWebIcon(){if(iconPreviewTimer!=null)iconPreviewTimer.Stop();if(entryType.SelectedIndex!=1)return;iconPreviewTimer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(600)};iconPreviewTimer.Tick+=delegate{iconPreviewTimer.Stop();RefreshWebIcon();};iconPreviewTimer.Start();webIconStatus.Text=String.IsNullOrEmpty(webIconData)?L.T("Автоматически с сайта · для личной страницы можно выбрать свой значок."):L.T("Свой значок · сохраняется вместе с настройками.");if(webIconPreview.Child==null)webIconPreview.Child=WebLinks.Icon(32);}
@@ -314,7 +336,7 @@ namespace WheelPicker {
    string path=target.Text.Trim().Trim('"');string expanded=Environment.ExpandEnvironmentVariables(path);
    if(Path.IsPathRooted(expanded)&&!File.Exists(expanded)){MessageBox.Show(this,L.T("Указанный файл не найден."),"WheelPicker");return;}
    if(!String.IsNullOrWhiteSpace(workdir.Text)&&!Directory.Exists(Environment.ExpandEnvironmentVariables(workdir.Text.Trim()))){MessageBox.Show(this,L.T("Рабочая папка не найдена."),"WheelPicker");return;}
-   Result=new LaunchItem{Name=name.Text.Trim(),Target=path,Arguments=arguments.Text,WorkingDirectory=workdir.Text.Trim(),IconTarget=iconTarget};DialogResult=true;
+   Result=new LaunchItem{Name=name.Text.Trim(),Target=path,Arguments=arguments.Text,WorkingDirectory=workdir.Text.Trim(),IconTarget=iconTarget,RepeatLaunch=repeatLaunch.SelectedIndex==1?"allow":repeatLaunch.SelectedIndex==2?"hide":null};DialogResult=true;
   }
  }
 }

@@ -12,6 +12,7 @@ namespace WheelPicker {
   [DataMember(EmitDefaultValue=false)] public string IconTarget {get;set;}
   [DataMember(EmitDefaultValue=false)] public string WebIconData {get;set;}
   [DataMember(EmitDefaultValue=false)] public string Kind {get;set;}
+  [DataMember(EmitDefaultValue=false)] public string RepeatLaunch {get;set;}
   [DataMember(EmitDefaultValue=false)] public List<LaunchItem> Children {get;set;}
   public bool IsGroup {get{return Children!=null;}}
   public bool IsCommandGroup {get{return IsGroup&&Kind=="commands";}}
@@ -64,6 +65,7 @@ namespace WheelPicker {
    }
   }
   private static void ValidateKind(LaunchItem item) {
+   if(!String.IsNullOrEmpty(item.RepeatLaunch)&&item.RepeatLaunch!="auto"&&item.RepeatLaunch!="allow"&&item.RepeatLaunch!="hide")throw new InvalidDataException(L.T("Неизвестное правило повторного открытия."));
    if((!String.IsNullOrEmpty(item.Kind)&&item.Kind!="command"&&item.Kind!="commands")||(item.Kind=="command"&&item.IsGroup)||(item.Kind=="commands"&&!item.IsGroup))throw new InvalidDataException(L.T("Неизвестный тип элемента."));
    if(item.IsCommand){string error;if(!Commands.ValidateText(item.Target,out error))throw new InvalidDataException(error);}
   }

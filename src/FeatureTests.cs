@@ -67,8 +67,8 @@ namespace WheelPicker {
      view.Select(i);Check(view.HasBranch&&view.SelectedAction==-1,"Open sector offers explicit actions with no default");
      var bounds=(Rect[])Field(view,"actionBounds");
      var left=view.ActionPoint(0);var right=view.ActionPoint(1);
-     Check(view.HitAction(left.X,left.Y)==0&&view.HitAction(right.X,right.Y)==1,"Concentric actions occupy separate halves");
-     for(int action=0;action<2;action++) {
+     Check(view.HitAction(left.X,left.Y)==0&&view.HitAction(right.X,right.Y)==1,"Open and close actions occupy distinct sectors");
+     for(int action=0;action<ForkActions.Count;action++) {
       var point=view.ActionPoint(action);var rect=bounds[action];Check(rect.Left>=-130&&rect.Right<=650&&rect.Top>=-130&&rect.Bottom<=650,"Branch stays inside overlay for every sector");
       if(count==5) {
        var surface=new Canvas{Width=780,Height=780};Canvas.SetLeft(view,0);Canvas.SetTop(view,0);surface.Children.Add(view);surface.Measure(new Size(780,780));surface.Arrange(new Rect(0,0,780,780));surface.UpdateLayout();

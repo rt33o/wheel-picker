@@ -18,23 +18,24 @@ namespace WheelPicker {
     for(int i=0;i<count;i++){c.Items.Add(new LaunchItem{Name="App "+i,Target="app"+i+".exe"});running[i]=true;}
     var view=new WheelView(c,running);double step=360.0/(count+1);
     for(int i=0;i<count;i++) {
-     view.Select(i);double anchor=-90+step*i;
-     var geometry=(Geometry[])Field(view,"actionGeometry");var seam=At(290,anchor);
-     Check(geometry[0].FillContains(seam)||geometry[1].FillContains(seam),"Drawn actions meet without an empty divider gap");
+     view.Select(i);double anchor=-90+step*i;var actions=view.AvailableActions;
+     var geometry=(Geometry[])Field(view,"actionGeometry");
+     for(int divider=1;divider<actions.Length;divider++){var seam=At(290,anchor-step/2+step/actions.Length*divider);Check(geometry[actions[divider-1]].FillContains(seam)||geometry[actions[divider]].FillContains(seam),"Drawn actions meet without an empty divider gap");}
      foreach(double radius in new[]{250.0,290,337,370,424}) {
       view.SelectAction(-1);Move(view,radius,anchor);
       Check(view.Selected==i&&view.HasBranch&&view.SelectedAction>=0,"Divider remains active through visible and expanded ring");
      }
-     Move(view,290,anchor-3);Check(view.SelectedAction==0,"First half of fork selects opening action");
-     Move(view,290,anchor+.1);Check(view.SelectedAction==0&&view.HasBranch,"Near-divider wobble retains previous action");
-     Move(view,290,anchor+3);Check(view.SelectedAction==1,"Crossing divider switches action without hiding fork");
-     Move(view,290,anchor);Check(view.SelectedAction==1&&view.HasBranch,"Returning to divider keeps selected close action");
-     for(int action=0;action<2;action++) {
-      Move(view,420,anchor+(action==0?-step/4:step/4));
+     for(int divider=1;divider<actions.Length;divider++){double seam=anchor-step/2+step/actions.Length*divider;
+      Move(view,290,seam-3);Check(view.SelectedAction==actions[divider-1],"First side of divider selects preceding action");
+      Move(view,290,seam+.1);Check(view.SelectedAction==actions[divider-1]&&view.HasBranch,"Near-divider wobble retains previous action");
+      Move(view,290,seam+3);Check(view.SelectedAction==actions[divider],"Crossing divider switches action without hiding fork");
+      Move(view,290,seam);Check(view.SelectedAction==actions[divider]&&view.HasBranch,"Returning to divider retains selected action");}
+     foreach(int action in actions) {
+      Move(view,420,anchor+ForkActions.Offset(action,step,actions));
       Check(view.Selected==i&&view.SelectedAction==action,"Fast outward flick remains active past visible outer arc");
-      Move(view,370,anchor+(action==0?-1:1)*(step/2+9));
-      Check(view.Selected==i&&view.SelectedAction==action,"Sideways overshoot remains active beyond drawn side boundary");
      }
+     Move(view,370,anchor-(step/2+9));Check(view.Selected==i&&view.SelectedAction==actions[0],"Left overshoot retains first action");
+     Move(view,370,anchor+(step/2+9));Check(view.Selected==i&&view.SelectedAction==actions[actions.Length-1],"Right overshoot retains last action");
      Move(view,164,anchor);
      Check(view.Selected==i&&view.SelectedAction==-1,"Returning to parent clears action without dismissing fork");
      Move(view,290,anchor);Move(view,480,anchor);

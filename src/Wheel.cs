@@ -22,10 +22,12 @@ namespace WheelPicker {
   internal void ClearCatPointer(){if(Cat!=null)Cat.ClearPointer();}
   internal readonly Canvas Face=new Canvas{Width=520,Height=520};
   private readonly Canvas branch=new Canvas{Width=780,Height=780,Visibility=Visibility.Collapsed};
-  private readonly Button[] actions=new Button[2];
-  private readonly Rect[] actionBounds=new Rect[2];
-  private readonly Geometry[] actionGeometry=new Geometry[2];
-  private readonly Path[] actionShapes=new Path[2];
+  private readonly Button[] actions=new Button[ForkActions.Count];
+  private readonly Rect[] actionBounds=new Rect[ForkActions.Count];
+  private readonly Geometry[] actionGeometry=new Geometry[ForkActions.Count];
+  private readonly Path[] actionShapes=new Path[ForkActions.Count];
+  private int[] availableActions=new int[0];
+  internal int[] AvailableActions {get{return HasGroup&&groupBranch!=null?groupBranch.AvailableActions:availableActions;}}
   private Path boundsOverlay;
   internal Path BoundsOverlay {get{return HasGroup&&groupBranch!=null?groupBranch.BoundsOverlay:boundsOverlay;}}
   private Geometry hitRegion;
@@ -128,8 +130,7 @@ namespace WheelPicker {
    double delta=(Math.Atan2(dy,dx)*180/Math.PI-anchor+540)%360-180;
    // Hit regions extend beyond the drawn ring and cover its shared divider continuously.
    
-   if(Math.Abs(delta)<2&&SelectedAction>=0)return SelectedAction;
-   return delta<0?0:1;
+   return ForkActions.Hit(delta,360.0/(config.Items.Count+1),SelectedAction,availableActions);
   }
   internal Geometry ForkHitGeometry() {
    if(HasGroup)return groupBranch==null?Geometry.Empty:groupBranch.ForkHitGeometry();
@@ -150,25 +151,28 @@ namespace WheelPicker {
   }
   internal Point ActionPoint(int action) {
    if(HasGroup)return groupBranch.ActionPoint(action);
-   double step=360.0/(config.Items.Count+1),angle=-90+step*Selected+(action==0?-step/4:step/4);
+   int slot=Array.IndexOf(availableActions,action);double edgeShift=(slot==0?1.2:0)-(slot==availableActions.Length-1?1.2:0);
+   double step=360.0/(config.Items.Count+1),angle=-90+step*Selected+ForkActions.Offset(action,step,availableActions)+edgeShift/2;
    return P(290,angle);
   }
   internal string ActionCaption(int action) {
    if(HasGroup)return groupBranch.ActionCaption(action);
+   if(action==ForkActions.Focus)return L.T("Перейти к окну");
    return explorer[Selected]?(action==0?L.T("Открыть новое окно"):L.T("Закрыть все окна")):(action==0?L.T("Открыть повторно"):L.T("Закрыть"));
   }
   internal void SelectAction(int action) {
    if(HasGroup){if(groupBranch!=null)groupBranch.SelectAction(action);return;}
-   SelectedAction=HasBranch?action:-1;
-   for(int a=0;a<2;a++)if(actionShapes[a]!=null) {
+   SelectedAction=HasBranch&&Array.IndexOf(availableActions,action)>=0?action:-1;
+   for(int a=0;a<ForkActions.Count;a++)if(actionShapes[a]!=null) {
     actionShapes[a].Fill=a==SelectedAction?(Brush)Application.Current.Resources["Tint"]:UI.Surface;
     actionShapes[a].Stroke=a==SelectedAction?UI.Accent:UI.Line;
     actionShapes[a].StrokeThickness=a==SelectedAction?2.5:1;
    }
-   if(HasBranch)hint.Text=SelectedAction>=0?(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==0?L.T("открыть"):L.T("закрыть")):L.T("Выберите действие");
+   if(HasBranch)hint.Text=ActionHint();
   }
   private void ShowBranch() {
    branch.Children.Clear();boundsOverlay=null;hitRegion=null;groupBranch=null;
+   availableActions=new int[0];Array.Clear(actions,0,actions.Length);Array.Clear(actionShapes,0,actionShapes.Length);Array.Clear(actionGeometry,0,actionGeometry.Length);Array.Clear(actionBounds,0,actionBounds.Length);
    if(HasGroup) {
     groupBranch=new GroupBranch(config,config.Items[Selected],-90+360.0*Selected/(config.Items.Count+1),360.0/(config.Items.Count+1),groupOpened[config.Items[Selected]]);
     groupBranch.Changed+=SyncGroupSelection;groupBranch.Pick+=delegate{SyncGroupSelection();if(Pick!=null)Pick(Selected);};
@@ -176,20 +180,20 @@ namespace WheelPicker {
    }
    branch.Visibility=HasBranch?Visibility.Visible:Visibility.Collapsed;
    if(!HasBranch)return;
-   double step=360.0/(config.Items.Count+1),half=step/2,start=-90+step*Selected-step/2;
-   for(int a=0;a<2;a++) {
-    int action=a;
-    // Both choices share the wheel center and radii, and divide exactly the parent's angle.
-    var geometry=Sector(242,338,start+a*half+(a==0?1.2:0),half-1.2);
+   double step=360.0/(config.Items.Count+1),anchor=-90+step*Selected,start=anchor-step/2;availableActions=ForkActions.For(config.Items[Selected],anchor);double part=step/availableActions.Length;
+   branch.Children.Add(new Path{Data=Sector(235,338,start,step),Fill=UI.Surface,RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false});
+   for(int slot=0;slot<availableActions.Length;slot++) {
+    int a=availableActions[slot],action=a;
+    // Actions share both dividers; only the two outer edges retain the parent's inset.
+    double inset=slot==0?1.2:0,endInset=slot==availableActions.Length-1?1.2:0;
+    var geometry=Sector(242,338,start+slot*part+inset,part-inset-endInset);
     actionGeometry[a]=geometry;actionBounds[a]=geometry.Bounds;
     var clip=geometry.Clone();clip.Transform=new TranslateTransform(130,130);
     var content=new Canvas{Width=780,Height=780};
     var shape=new Path{Data=geometry,Fill=UI.Surface,Stroke=UI.Line,StrokeThickness=1,RenderTransform=new TranslateTransform(130,130),IsHitTestVisible=false};
     content.Children.Add(shape);actionShapes[a]=shape;
-    double labelWidth=Math.Max(46,Math.Min(118,2*290*Math.Sin(half*Math.PI/360)*.84));
-    var label=UI.Text(explorer[Selected]?(a==0?L.T("Новое\nокно"):L.T("Закрыть\nвсе окна")):(a==0?L.T("Открыть\nповторно"):L.T("Закрыть")),config.Items.Count>7?10.5:12,UI.Ink);
-    label.Width=labelWidth;label.Height=52;label.FontWeight=FontWeights.SemiBold;label.TextAlignment=TextAlignment.Center;label.IsHitTestVisible=false;
-    var point=ActionPoint(a);SetLeft(label,point.X+130-labelWidth/2);SetTop(label,point.Y+130-19);content.Children.Add(label);
+    var point=ActionPoint(a);var label=ForkActions.Label(a==ForkActions.Focus?L.T("Перейти\nк окну"):explorer[Selected]?(a==0?L.T("Новое\nокно"):L.T("Закрыть\nвсе окна")):(a==0?L.T("Открыть\nповторно"):L.T("Закрыть")),geometry,point,config.Items.Count>7?10.5:12);
+    SetLeft(label,point.X+130-label.DesiredSize.Width/2);SetTop(label,point.Y+130-label.DesiredSize.Height/2);content.Children.Add(label);
     var button=new Button{Content=content,Width=780,Height=780,Padding=new Thickness(0),Background=Brushes.Transparent,BorderThickness=new Thickness(0),Clip=clip,ToolTip=ActionCaption(a)+" — "+config.Items[Selected].Name};
     AutomationProperties.SetName(button,ActionCaption(a)+" "+config.Items[Selected].Name);
     button.Click+=delegate{SelectAction(action);if(Pick!=null)Pick(Selected);};
@@ -204,8 +208,10 @@ namespace WheelPicker {
   private void SyncGroupSelection() {
    SelectedAction=groupBranch.SelectedAction;title.Text=groupBranch.SelectedItem==null?config.Items[Selected].Name:groupBranch.SelectedItem.Name;
    if(config.Items[Selected].Children.Count==0){hint.Text=L.T("Группа пуста\nДобавьте в настройках");return;}
-   hint.Text=groupBranch.SelectedItem==null?(config.Items[Selected].IsCommandGroup?L.T("Выберите команду ↗"):L.T("Выберите приложение ↗")):groupBranch.SelectedItem.IsCommand?(ReleaseMode?L.T("Отпустите — вставить"):L.T("Нажмите — вставить")):HasBranch?(SelectedAction<0?L.T("Выберите действие"):(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==0?L.T("открыть"):L.T("закрыть"))):(ReleaseMode?L.T("Отпустите — открыть"):L.T("Нажмите — открыть"));
+   hint.Text=groupBranch.SelectedItem==null?(config.Items[Selected].IsCommandGroup?L.T("Выберите команду ↗"):L.T("Выберите приложение ↗")):groupBranch.SelectedItem.IsCommand?(ReleaseMode?L.T("Отпустите — вставить"):L.T("Нажмите — вставить")):HasBranch?ActionHint():(ReleaseMode?L.T("Отпустите — открыть"):L.T("Нажмите — открыть"));
   }
+  private string ActionHint(){return SelectedAction<0?L.T("Выберите действие"):(ReleaseMode?L.T("Отпустите — "):L.T("Нажмите — "))+(SelectedAction==ForkActions.Focus?L.T("перейти к окну"):SelectedAction==ForkActions.Open?L.T("открыть"):L.T("закрыть"));}
+  internal void StepAction(int direction){if(!HasBranch)return;var list=AvailableActions;int slot=Array.IndexOf(list,SelectedAction);if(slot<0)slot=direction>0?-1:0;SelectAction(list[(slot+direction+list.Length)%list.Length]);}
   internal void SelectGroupChild(int child) {if(HasGroup&&groupBranch!=null)groupBranch.Select(child);}
   internal Point GroupItemPoint(int child) {return groupBranch.ItemPoint(child);}
   internal void StepGroupChild(int direction) {if(!HasGroup)return;int count=config.Items[Selected].Children.Count;if(count==0)return;SelectGroupChild((GroupChildIndex+direction+count)%count);}
@@ -260,8 +266,7 @@ namespace WheelPicker {
    PreviewKeyDown+=delegate(object sender,KeyEventArgs e) {
     if(e.Key==Key.Escape){e.Handled=true;Dismiss();}
     else if(view.HasGroup&&(e.Key==Key.Up||e.Key==Key.Down||e.Key==Key.Tab&&!view.HasBranch)){e.Handled=true;view.StepGroupChild(e.Key==Key.Up?-1:1);}
-    else if(e.Key==Key.Tab && view.HasBranch){e.Handled=true;view.SelectAction(view.SelectedAction==0?1:0);}
-    else if((e.Key==Key.Right||e.Key==Key.Left) && view.HasBranch){e.Handled=true;view.SelectAction(e.Key==Key.Right?1:0);}
+    else if((e.Key==Key.Tab||e.Key==Key.Right||e.Key==Key.Left) && view.HasBranch){e.Handled=true;int direction=e.Key==Key.Left||e.Key==Key.Tab&&(Keyboard.Modifiers&ModifierKeys.Shift)!=0?-1:1;view.StepAction(direction);}
     else if(e.Key==Key.Right||e.Key==Key.Down){e.Handled=true;view.Select((view.Selected+1)%(h.Config.Items.Count+1));}
     else if(e.Key==Key.Left||e.Key==Key.Up){e.Handled=true;view.Select(view.Selected<0?h.Config.Items.Count:(view.Selected+h.Config.Items.Count)%(h.Config.Items.Count+1));}
     else if(e.Key==Key.Enter){e.Handled=true;Choose(view.Selected);}
@@ -306,8 +311,8 @@ namespace WheelPicker {
    var item=view.SelectedItem;
    if(item!=null&&item.IsCommand){Finish(delegate{host.InsertCommand(item,commandDestination);});return;}
    if(view.HasBranch) {
-    if(view.SelectedAction<0){if(view.ReleaseMode)Dismiss();return;}
-    Finish(view.SelectedAction==0?(Action)delegate{host.LaunchNew(item);}:delegate{host.CloseItem(item);});
+    if(view.SelectedAction<0||Array.IndexOf(view.AvailableActions,view.SelectedAction)<0){if(view.ReleaseMode)Dismiss();return;}
+    Finish(view.SelectedAction==ForkActions.Focus?(Action)delegate{host.FocusItem(item);}:view.SelectedAction==ForkActions.Open?(Action)delegate{host.LaunchNew(item);}:delegate{host.CloseItem(item);});
    } else Finish(delegate{host.LaunchNew(item);});
   }
  }

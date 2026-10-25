@@ -51,7 +51,7 @@ namespace WheelPicker {
     for(int child=0;child<members;child++) {
      var point=view.GroupItemPoint(child);view.UpdatePointer(point.X,point.Y);
      Check(view.GroupChildIndex==child&&Object.ReferenceEquals(view.SelectedItem,g.Children[child])&&view.HasBranch,"Child sector selects its own running application");
-     for(int action=0;action<2;action++) {
+     for(int action=0;action<ForkActions.Count;action++) {
       point=view.ActionPoint(action);view.UpdatePointer(point.X,point.Y);
       Check(view.SelectedAction==action&&view.Selected==parent&&view.GroupChildIndex==child,"Outer fork selects child action while preserving group parent");
       Check(view.BoundsOverlay!=null&&Object.ReferenceEquals(view.BoundsOverlay.Data,view.ForkHitGeometry()),"Group fork bounds use actual hit geometry");

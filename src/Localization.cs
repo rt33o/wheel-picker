@@ -6,6 +6,14 @@ namespace WheelPicker {
   internal static void Set(string language){Language=language=="en"?"en":"ru";}
   internal static string T(string russian){string value;return Language=="en"&&English.TryGetValue(russian,out value)?value:russian;}
   internal static readonly Dictionary<string,string> English=new Dictionary<string,string>(StringComparer.Ordinal) {
+   {"Открывать повторно","Open again"},{"Разрешать","Allow"},{"Скрывать","Hide"},{"Неизвестное правило повторного открытия.","Unknown repeat-launch rule."},
+   {"Авто скрывает действие для известных приложений с одним окном, включая Postman. Для остальных оно доступно.","Auto hides this action for known single-window apps, including Postman. It remains available for other apps."},
+   {"Перейти к окну","Switch to window"},{"Перейти\nк окну","Switch to\nwindow"},{"перейти к окну","switch to window"},{"Перейти","Switch"},{"Открытые окна","Open windows"},{"Открытых окон: ","Open windows: "},{"Окно без названия","Untitled window"},
+   {"Выберите открытое окно. Свёрнутое окно будет восстановлено.","Choose an open window. A minimized window will be restored."},{"Открытых окон больше нет.","There are no open windows left."},{"Это окно уже закрыто. Выберите другое.","This window has closed. Choose another one."},
+   {"Не удалось переключиться на окно. Оно могло закрыться, либо Windows отклонила переключение.","Could not switch to the window. It may have closed, or Windows declined the switch."},
+   {"Показывать действия открытого приложения","Show actions for running apps"},{"Перейти к окну, открыть повторно или закрыть. У Проводника можно закрыть все окна папок.","Switch to a window, open again, or close. File Explorer can close all folder windows."},
+   {"Вернуть","Undo"},{"Элемент удалён","Item removed"},{"Элемент восстановлен","Item restored"},{"» · Ctrl+Z — вернуть","” · Ctrl+Z to undo"},{"» удалено · Ctrl+Z — вернуть","” removed · Ctrl+Z to undo"},{"» восстановлено. Сохраните изменения.","” restored. Save your changes."},
+   {"Колесо заполнено","Wheel is full"},{"Освободите сектор, чтобы вернуть удалённый элемент.","Free up a slot to restore the removed item."},{"Этот элемент уже есть в группе.","This item is already in the group."},
    {"Колесо","Wheel"},{"Общие","General"},{"Отменить изменения","Discard changes"},{"Есть несохранённые изменения","Unsaved changes"},{"Все изменения сохранены","All changes saved"},{"Изменения отменены","Changes discarded"},
    {"Программы, ссылки и команды в вашем колесе.","Apps, links and commands in your wheel."},{"Предпросмотр текущего колеса","Current wheel preview"},{"секторов","sectors"},
    {"Настройте вызов колеса и выбор действий.","Choose how to open the wheel and select actions."},{"Форки","Forks"},

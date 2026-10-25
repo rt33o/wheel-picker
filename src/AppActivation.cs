@@ -13,9 +13,18 @@ namespace WheelPicker {
   internal bool Explorer;
   internal bool Matches(string executable,string appId) {
    if(Explorer)return false;
-   return (!String.IsNullOrEmpty(AppId)&&String.Equals(AppId,appId,StringComparison.OrdinalIgnoreCase))
-    || (!String.IsNullOrEmpty(Executable)&&String.Equals(Executable,executable,StringComparison.OrdinalIgnoreCase));
+   if(ExecutableIdentity.Matches(Executable,executable))return true;
+   // Squirrel AppIDs can be shared by distinct installations; a known conflicting
+   // executable path must not be overridden by that desktop shortcut ID.
+   return !String.IsNullOrEmpty(AppId)&&String.Equals(AppId,appId,StringComparison.OrdinalIgnoreCase)
+    && !(AppId.StartsWith("com.squirrel.",StringComparison.OrdinalIgnoreCase)&&!String.IsNullOrEmpty(Executable)&&!String.IsNullOrEmpty(executable));
   }
+ }
+ internal sealed class OpenAppWindow {
+  internal IntPtr Handle;
+  internal uint ProcessId;
+  internal string Title;
+  public override string ToString(){return Title;}
  }
  internal static class AppActivation {
   // Compare the launch destination, not its display name, icon, or arguments.
@@ -33,12 +42,14 @@ namespace WheelPicker {
   }
   private static string ApplicationKey(LaunchItem item) {
    string target=Environment.ExpandEnvironmentVariables((item.Target??"").Trim().Trim('"'));
+   string arguments=item.Arguments??"";
    if(target.EndsWith(".lnk",StringComparison.OrdinalIgnoreCase)) {
+    arguments=ShortcutArguments(target)+" "+arguments;
     string resolved=ShortcutTarget(target);if(!String.IsNullOrWhiteSpace(resolved))target=Environment.ExpandEnvironmentVariables(resolved.Trim().Trim('"'));
    }
    if(ApplicationCatalog.IsShellTarget(target))return target;
    string executable=ResolveExecutable(target,item.WorkingDirectory);
-   if(!String.IsNullOrEmpty(executable))return executable;
+   if(!String.IsNullOrEmpty(executable))return ExecutableIdentity.Key(ExecutableIdentity.LauncherTarget(executable,arguments));
    try{if(Path.IsPathRooted(target))return Path.GetFullPath(target);}catch(ArgumentException){}catch(NotSupportedException){}catch(IOException){}
    return target;
   }
@@ -51,6 +62,9 @@ namespace WheelPicker {
   [DllImport("user32.dll",SetLastError=true)] private static extern bool PostMessage(IntPtr window,uint message,IntPtr w,IntPtr l);
   [DllImport("user32.dll",CharSet=CharSet.Unicode)] private static extern int GetClassName(IntPtr window,StringBuilder name,int length);
   [DllImport("user32.dll")] private static extern bool IsIconic(IntPtr window);
+  [DllImport("user32.dll")] private static extern bool IsWindow(IntPtr window);
+  [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+  [DllImport("user32.dll",CharSet=CharSet.Unicode)] private static extern int GetWindowText(IntPtr window,StringBuilder text,int length);
   [DllImport("user32.dll")] private static extern bool ShowWindowAsync(IntPtr window,int command);
   [DllImport("kernel32.dll",SetLastError=true)] private static extern IntPtr OpenProcess(uint access,bool inherit,uint process);
   [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
@@ -75,12 +89,14 @@ namespace WheelPicker {
   internal static AppIdentity Resolve(LaunchItem item) {
    if(item.IsWebLink||item.IsCommand||item.IsGroup)return new AppIdentity();
    string target=Environment.ExpandEnvironmentVariables((item.Target??"").Trim().Trim('"'));
+   string arguments=item.Arguments??"";
    string id=ApplicationCatalog.IsShellTarget(target)?target.Substring(ApplicationCatalog.ShellPrefix.Length):null;
-   if(Path.GetExtension(target).Equals(".lnk",StringComparison.OrdinalIgnoreCase))target=ShortcutTarget(target);
+   if(Path.GetExtension(target).Equals(".lnk",StringComparison.OrdinalIgnoreCase)){arguments=ShortcutArguments(target)+" "+arguments;target=ShortcutTarget(target);}
    if(ApplicationCatalog.IsShellTarget(target)) {id=target.Substring(ApplicationCatalog.ShellPrefix.Length);target=ShellExecutable(id);}
    else if(id!=null)target=ShellExecutable(id);
    if(String.IsNullOrWhiteSpace(id)&&ApplicationCatalog.IsShellTarget(item.IconTarget))id=item.IconTarget.Substring(ApplicationCatalog.ShellPrefix.Length);
    string executable=ResolveExecutable(target,item.WorkingDirectory);
+   executable=ExecutableIdentity.LauncherTarget(executable,arguments);
    string file=Path.GetFileName(target??"");
    string directory=String.IsNullOrEmpty(executable)?null:Path.GetDirectoryName(executable);
    string windows=Environment.GetFolderPath(Environment.SpecialFolder.Windows);
@@ -108,6 +124,27 @@ namespace WheelPicker {
    return ApplicationCatalog.CreateLaunchInfo(item);
   }
   internal static bool IsRunning(LaunchItem item) {return FindWindows(Resolve(item)).Count>0;}
+  internal static List<OpenAppWindow> OpenWindows(LaunchItem item) {
+   var result=new List<OpenAppWindow>();if(item==null||item.IsGroup||item.IsWebLink||item.IsCommand)return result;
+   foreach(var handle in FindWindows(Resolve(item))) {
+    uint pid;GetWindowThreadProcessId(handle,out pid);var title=new StringBuilder(2048);GetWindowText(handle,title,title.Capacity);
+    result.Add(new OpenAppWindow{Handle=handle,ProcessId=pid,Title=title.Length==0?L.T("Окно без названия"):title.ToString()});
+   }
+   return result;
+  }
+  internal static bool CanFocus(LaunchItem item,OpenAppWindow target) {
+   if(target==null||!IsWindow(target.Handle))return false;
+   uint pid;GetWindowThreadProcessId(target.Handle,out pid);
+   return pid==target.ProcessId&&OpenWindows(item).Exists(w=>w.Handle==target.Handle&&w.ProcessId==target.ProcessId);
+  }
+  internal static bool TryFocus(LaunchItem item,OpenAppWindow target) {
+   if(!CanFocus(item,target))return false;
+   if(IsIconic(target.Handle))ShowWindowAsync(target.Handle,9);
+   return Native.SetForegroundWindow(target.Handle)||GetForegroundWindow()==target.Handle;
+  }
+  internal static IntPtr Foreground {get{return GetForegroundWindow();}}
+  internal static bool Minimized(OpenAppWindow target){return IsIconic(target.Handle);}
+  internal static void Restore(OpenAppWindow target){if(IsIconic(target.Handle))ShowWindowAsync(target.Handle,9);}
   internal static bool IsExplorerWindow(string windowClass,string executable) {
    return (windowClass=="CabinetWClass"||windowClass=="ExploreWClass") && String.Equals(executable,Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"explorer.exe"),StringComparison.OrdinalIgnoreCase);
   }

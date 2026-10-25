@@ -32,7 +32,10 @@
 | `src/SettingsLayout.cs` | Четыре страницы, меню, общий индикатор изменений, сохранение/отмена и живой предпросмотр питомца. |
 | `src/Settings.cs` | Остальная часть `SettingsWindow`: редактирование, перенос элементов, импорт/экспорт, захват сочетания, уведомления и диалог элемента. |
 | `src/ApplicationCatalog.cs`, `src/ProgramPicker.cs` | Каталог установленных программ и выбор между локальными приложениями и Microsoft Store. |
-| `src/AppActivation.cs`, `src/Native.cs`, `src/KeyReleaseWatch.cs` | Запуск, обнаружение и закрытие окон, взаимодействие с Windows и отпускание клавиши. |
+| `src/AppActivation.cs`, `src/ExecutableIdentity.cs`, `src/Native.cs`, `src/KeyReleaseWatch.cs` | Запуск, обнаружение и закрытие окон, сопоставление версионных установок Squirrel, взаимодействие с Windows и отпускание клавиши. |
+| `src/ForkActions.cs`, `src/WindowPicker.cs`, `src/WindowFocusRequest.cs` | Три действия форка, выбор открытого окна по названию и асинхронное восстановление перед переключением. |
+| `src/DeletionUndo.cs` | История удаления элементов текущего черновика; используется настройками и редактором группы. |
+| `src/RepeatLaunchPolicy.cs` | Переопределяемое правило повторного открытия. Авто не запускает приложение для проверки и не делает выводов по числу процессов; неизвестные программы сохраняют действие. |
 | `src/Commands.cs` | Вставка буквального текста, сохранение исходного адресата, ожидание отпускания клавиш. |
 | `src/WebLinks.cs`, `src/WebIcons.cs`, `src/ShellImages.cs` | Адреса сайтов, favicon и собственные иконки, значки Windows. |
 | `src/Theme.cs`, `src/Seasonal.cs`, `src/Localization.cs` | Общие стили, Halloween, русский/английский интерфейс. |
