@@ -4,7 +4,9 @@
 
 A radial application launcher for Windows 11, with optional PowerToys Run integration.
 
-![Choose an app, a group, or an open/close action](docs/demo.gif)
+![WheelPicker 1.5: apps, forks, links, 10 commands and Halloween](docs/demo.gif)
+
+A 24-second tour of the current UI: app actions, groups, website icons, up to 10 commands typed without Enter, settings, and English/Halloween. The demo uses sample data; text insertion is illustrated in a sample input field.
 
 ## Version 1.5: command groups
 
