@@ -31,16 +31,22 @@ namespace WheelPicker {
   [DataMember] public bool Dark;
   [DataMember] public string Language="ru";
   [DataMember] public bool Halloween;
+  [DataMember] public bool ShowOrbitCat=true;
+  [DataMember] public double OrbitCatSpeed=1;
+  [DataMember] public string OrbitPet="theme";
+  public string ResolvedOrbitPet {get{return OrbitPet=="theme"?(Halloween?"bat":"cat"):OrbitPet;}}
   [DataMember] public bool AutoStart=true;
   [DataMember] public bool CloseOnRepeat=true;
   [DataMember] public int ActivationDelayMs=180;
   [DataMember] public int ForkOutwardPadding=120;
   [DataMember] public int ForkSidePadding=60;
   [DataMember] public bool ShowForkBounds;
-  [OnDeserializing] private void BeforeLoad(StreamingContext context) {Language="ru";CloseOnRepeat=true;ActivationDelayMs=180;ForkOutwardPadding=120;ForkSidePadding=60;}
+  [OnDeserializing] private void BeforeLoad(StreamingContext context) {Language="ru";ShowOrbitCat=true;OrbitCatSpeed=1;OrbitPet="theme";CloseOnRepeat=true;ActivationDelayMs=180;ForkOutwardPadding=120;ForkSidePadding=60;}
   [DataMember] public List<LaunchItem> Items=new List<LaunchItem>();
   public Configuration Copy() {var c=(Configuration)MemberwiseClone(); c.Items=Items.ConvertAll(i=>i.Copy()); return c;}
   public void Validate() {
+   if(OrbitPet!="theme"&&OrbitPet!="cat"&&OrbitPet!="bat")throw new InvalidDataException(L.T("Неизвестный питомец."));
+   if(Double.IsNaN(OrbitCatSpeed)||Double.IsInfinity(OrbitCatSpeed)||OrbitCatSpeed<.25||OrbitCatSpeed>3)throw new InvalidDataException(L.T("Скорость питомца должна быть от 0,25× до 3×."));
    if(Language!="ru"&&Language!="en")throw new InvalidDataException(L.T("Неизвестный язык интерфейса."));
    if(ForkOutwardPadding<0||ForkOutwardPadding>300||ForkSidePadding<0||ForkSidePadding>180)throw new InvalidDataException(L.T("Запас форка: снаружи от 0 до 300, по бокам от 0 до 180 px."));
    if(ActivationDelayMs<0||ActivationDelayMs>1000)throw new InvalidDataException(L.T("Задержка должна быть от 0 до 1000 мс."));

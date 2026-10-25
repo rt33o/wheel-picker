@@ -8,7 +8,8 @@ $refs = @('System.dll','System.Core.dll','System.Runtime.Serialization.dll','Sys
 $refs += @('WindowsBase.dll','PresentationCore.dll','PresentationFramework.dll') | ForEach-Object { '/r:' + (Join-Path $wpf $_) }
 $sources = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'src') -Filter '*.cs' | ForEach-Object FullName
 $out = Join-Path $PSScriptRoot 'WheelPicker.exe'
-& $csc /nologo /target:winexe /platform:anycpu /optimize+ /utf8output "/out:$out" "/win32icon:$(Join-Path $PSScriptRoot 'wheel.ico')" @refs @sources
+$catResources = Get-ChildItem -LiteralPath (Join-Path $PSScriptRoot 'assets') -Filter '*.png' | ForEach-Object { '/resource:' + $_.FullName + ',WheelPicker.Assets.' + $_.Name }
+& $csc /nologo /target:winexe /platform:anycpu /optimize+ /utf8output "/out:$out" "/win32icon:$(Join-Path $PSScriptRoot 'wheel.ico')" @catResources @refs @sources
 if ($LASTEXITCODE -ne 0) { throw 'WheelPicker build failed.' }
 if (!$SkipPlugin) {
  if (!(Test-Path (Join-Path $PowerToysPath 'Wox.Plugin.dll'))) { Write-Warning 'PowerToys Run not found. The standalone application was built. Pass -PowerToysPath to build the adapter.'; return }

@@ -15,6 +15,11 @@ namespace WheelPicker {
   private readonly bool[] running,branchable,explorer;
   private readonly System.Collections.Generic.Dictionary<LaunchItem,bool[]> groupOpened=new System.Collections.Generic.Dictionary<LaunchItem,bool[]>();
   private GroupBranch groupBranch;
+  internal OrbitCat Cat {get;private set;}
+  internal void StartDecorations(){if(Cat!=null)Cat.Start();}
+  internal void StopDecorations(){if(Cat!=null)Cat.Stop();}
+  internal bool UpdateCatPointer(double x,double y){if(Cat==null)return false;bool hover=Cat.SetPointer(x,y);if(hover){SelectAction(-1);Select(-1);}return hover;}
+  internal void ClearCatPointer(){if(Cat!=null)Cat.ClearPointer();}
   internal readonly Canvas Face=new Canvas{Width=520,Height=520};
   private readonly Canvas branch=new Canvas{Width=780,Height=780,Visibility=Visibility.Collapsed};
   private readonly Button[] actions=new Button[2];
@@ -78,6 +83,7 @@ namespace WheelPicker {
    center.Child=cp;SetLeft(center,171);SetTop(center,171);Face.Children.Add(center);
    MouseMove+=delegate(object sender,MouseEventArgs e) {var pos=e.GetPosition(Face);UpdatePointer(pos.X,pos.Y);};
    if(UI.Halloween)Face.Children.Add(Seasonal.WheelTrim());
+   if(c.ShowOrbitCat){Cat=new OrbitCat(c.OrbitCatSpeed,c.ResolvedOrbitPet);Cat.HoverChanged+=delegate(bool hover){if(hover){SelectAction(-1);Select(-1);}};SetLeft(Cat,130);SetTop(Cat,130);Panel.SetZIndex(Cat,50);Children.Add(Cat);}
   }
   internal static int Hit(double x,double y,int count) {
    double dx=x-260,dy=y-260,r=Math.Sqrt(dx*dx+dy*dy);if(r<96||r>235)return -1;
@@ -93,6 +99,7 @@ namespace WheelPicker {
    if(SelectedItem!=null&&SelectedItem.IsCommand)hint.Text=ReleaseMode?L.T("Отпустите — вставить"):L.T("Нажмите — вставить");
   }
   internal void UpdatePointer(double x,double y) {
+   if(UpdateCatPointer(x,y))return;
    if(HasGroup&&groupBranch!=null) {
     if(groupBranch.UpdatePointer(x,y)){SyncGroupSelection();return;}
     int main=Hit(x,y,config.Items.Count+1);
@@ -227,6 +234,7 @@ namespace WheelPicker {
    var tip=UI.Text(L.T("Esc — закрыть     ·     ← → — выбор     ·     Enter — выбрать"),11,UI.Muted);tip.HorizontalAlignment=HorizontalAlignment.Center;root.Children.Add(tip);Content=root;
    view.Pick+=delegate(int index){if(dismissing)return;if(view.ReleaseMode)view.Select(index);else Choose(index);};view.Settings+=delegate{Finish(h.OpenSettings);};
    Loaded+=delegate {
+    view.StartDecorations();
     var cursor=System.Windows.Forms.Cursor.Position;
     var screen=System.Windows.Forms.Screen.FromPoint(cursor);var work=screen.WorkingArea;
     var source=PresentationSource.FromVisual(this);var transform=source.CompositionTarget.TransformFromDevice;
@@ -247,7 +255,7 @@ namespace WheelPicker {
    };
    MouseMove+=delegate(object sender,MouseEventArgs e){var p=e.GetPosition(view.Face);view.UpdatePointer(p.X,p.Y);};
    PreviewMouseLeftButtonUp+=delegate(object sender,MouseButtonEventArgs e){var p=e.GetPosition(view.Face);if(ChoosePointerAction(p.X,p.Y))e.Handled=true;else if(!view.ReleaseMode&&WheelView.Hit(p.X,p.Y,h.Config.Items.Count+1)<0&&(p.X-260)*(p.X-260)+(p.Y-260)*(p.Y-260)>235*235){e.Handled=true;Dismiss();}};
-   MouseLeave+=delegate{view.Select(-1);};
+   MouseLeave+=delegate{view.ClearCatPointer();view.Select(-1);};
    Deactivated+=delegate{Dismiss();};
    PreviewKeyDown+=delegate(object sender,KeyEventArgs e) {
     if(e.Key==Key.Escape){e.Handled=true;Dismiss();}
@@ -263,6 +271,7 @@ namespace WheelPicker {
    if(fromHotkey && h.Config.HoldToSelect) {hold=new DispatcherTimer{Interval=TimeSpan.FromMilliseconds(16)};hold.Tick+=delegate{if(!Native.TriggerDown(h.Config))Choose(view.Selected);};Loaded+=delegate{if(!dismissing)hold.Start();};}
   }
   internal bool ChoosePointerAction(double x,double y) {
+   if(!dismissing&&view.UpdateCatPointer(x,y))return true;
    if(!dismissing&&!view.ReleaseMode&&view.HasGroup) {view.UpdatePointer(x,y);if(view.GroupChildIndex>=0){Choose(view.Selected);return true;}}
    if(dismissing||view.ReleaseMode||view.HitAction(x,y)<0)return false;
    view.UpdatePointer(x,y);Choose(view.Selected);return true;
@@ -275,11 +284,13 @@ namespace WheelPicker {
    Close();
   }
   protected override void OnClosing(System.ComponentModel.CancelEventArgs e) {
+   view.StopDecorations();
    dismissing=true;
    if(hold!=null)hold.Stop();
    base.OnClosing(e);
   }
   protected override void OnClosed(EventArgs e) {
+   view.StopDecorations();
    dismissing=true;
    if(hold!=null)hold.Stop();
    var action=afterClose;afterClose=null;
@@ -287,6 +298,7 @@ namespace WheelPicker {
    if(action!=null && !Dispatcher.HasShutdownStarted)Dispatcher.BeginInvoke(DispatcherPriority.Background,action);
   }
   private void Choose(int index) {
+   if(view.Cat!=null&&view.Cat.IsHovered){if(view.ReleaseMode)Dismiss();return;}
    if(index<0 || index>host.Config.Items.Count){Dismiss();return;}
    if(index==host.Config.Items.Count){Finish(host.AddItem);return;}
    if(index!=view.Selected)view.Select(index);

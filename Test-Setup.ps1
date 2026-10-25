@@ -44,6 +44,9 @@ try {
 $settings.Key=86; $settings.Modifiers=3; $settings.Items[0].Name='Проверка 🚀'; $settings.ShowForkBounds=$true
 $settings | Add-Member -NotePropertyName Language -NotePropertyValue 'en' -Force
 $settings | Add-Member -NotePropertyName Halloween -NotePropertyValue $true -Force
+$settings | Add-Member -NotePropertyName ShowOrbitCat -NotePropertyValue $false -Force
+$settings | Add-Member -NotePropertyName OrbitCatSpeed -NotePropertyValue 2.25 -Force
+$settings | Add-Member -NotePropertyName OrbitPet -NotePropertyValue 'cat' -Force
 $settings.Version=3
 $commandGroup=[pscustomobject]@{Name='Команды 🚀';Kind='commands';Children=@()}
 for($commandIndex=0;$commandIndex -lt 10;$commandIndex++){$commandGroup.Children += [pscustomobject]@{Name=('Команда '+$commandIndex);Kind='command';Target=('.venv\Scripts\Activate.ps1 # '+$commandIndex);Arguments='';WorkingDirectory=''}}
@@ -63,6 +66,9 @@ Assert ($updated.Items[-3].Children[9].Kind -eq 'command' -and $updated.Items[-3
 Assert ($updated.Items[-2].Children[1].Target -eq $webLink.Target -and $updated.Items[-2].Children[1].WebIconData -eq $iconData) 'Upgrade preserves grouped website URL and custom icon'
 Assert ($updated.Items[-1].Target -eq 'https://drive.google.com/drive/u/0/') 'Upgrade preserves standalone website links'
 Assert ($updated.Language -eq 'en' -and $updated.Halloween) 'Upgrade preserves English language and Halloween theme'
+Assert ($updated.ShowOrbitCat -eq $false) 'Upgrade preserves disabled cat preference'
+Assert ($updated.OrbitCatSpeed -eq 2.25) 'Upgrade preserves custom cat running speed'
+Assert ($updated.OrbitPet -eq 'cat' -and $updated.Halloween) 'Upgrade preserves explicit cat choice in Halloween theme'
 Assert ($updated.AutoStart -eq $false) 'Upgrade applies disabled startup preference'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Startup\WheelPicker.lnk'))) 'Upgrade removes unchecked startup shortcut'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Desktop\WheelPicker.lnk'))) 'Upgrade removes unchecked desktop shortcut'

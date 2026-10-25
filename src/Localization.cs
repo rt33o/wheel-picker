@@ -6,6 +6,11 @@ namespace WheelPicker {
   internal static void Set(string language){Language=language=="en"?"en":"ru";}
   internal static string T(string russian){string value;return Language=="en"&&English.TryGetValue(russian,out value)?value:russian;}
   internal static readonly Dictionary<string,string> English=new Dictionary<string,string>(StringComparer.Ordinal) {
+   {"Показывать бегущего котика","Show the running cat"},
+   {"Показывать анимированного питомца","Show animated pet"},{"Питомец","Pet"},{"По теме","Match theme"},{"Котик","Cat"},{"Летучая мышь","Bat"},{"Скорость питомца","Pet speed"},{"Неизвестный питомец.","Unknown pet."},
+   {"Скорость котика","Cat speed"},{" с на круг"," s per orbit"},
+   {"Скорость котика должна быть от 0,25× до 3×.","Cat speed must be between 0.25× and 3×."},
+   {"Скорость питомца должна быть от 0,25× до 3×.","Pet speed must be between 0.25× and 3×."},
    {"Команда","Command"},{"Группа команд","Command group"},{"Добавить команду","Add command"},{"Изменить команду","Edit command"},{"Текст команды","Command text"},
    {"Создать группу команд","Create command group"},{"Изменить группу команд","Edit command group"},
    {"Команды · ","Commands · "},{"+  Добавить команду","+  Add command"},

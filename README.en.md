@@ -10,6 +10,8 @@ A 24-second tour of the current UI: app actions, groups, website icons, up to 10
 
 ## Version 1.5: command groups
 
+**1.5.1** adds two pixel pets on the inner ring: a ginger cat and a bat. Settings offer **Show animated pet**, **Match theme / Cat / Bat**, and speed from **0.25× to 3×**. The automatic choice is a bat for Halloween and a cat for other themes; either pet can be chosen in any theme. Hover to pause: the pet faces you, blinks, and displays a flashing yellow question mark, then resumes from the same spot. Preferences travel with backups; sprites are embedded in the EXE. [Sprites and prompts](assets/README.md).
+
 A dedicated **Command group** holds up to **10 commands**, such as `.venv\Scripts\Activate.ps1`. Picking one types its text into the original active window **without Enter** and preserves your clipboard. Edit, reorder, drag commands into groups, and include them in settings backups. Duplicate commands and full groups show a notification; app groups still hold up to 3 apps.
 
 ## Version 1.4: website links and icons

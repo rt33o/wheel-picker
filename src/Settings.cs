@@ -17,10 +17,10 @@ namespace WheelPicker {
   private bool recording;
   private int appearanceRevision;
   private TextBlock status,activationHint;
-  private ComboBox mode,position,theme,language;
-  private CheckBox autoStart,closeOnRepeat,showForkBounds;
+  private ComboBox mode,position,theme,language,petKind;
+  private CheckBox autoStart,closeOnRepeat,showForkBounds,showOrbitCat;
   private Border forkPreviewHost;
-  private Slider activationDelay,forkOutward,forkSide;
+  private Slider activationDelay,forkOutward,forkSide,orbitCatSpeed;
   private Border saveToast;
   private TextBlock notificationTitle,notificationMessage,notificationSymbol;
   private Canvas dragLayer;
@@ -87,6 +87,14 @@ namespace WheelPicker {
    autoStart=new CheckBox{Content=L.T("Запускать при входе в Windows в фоне"),IsChecked=draft.AutoStart,IsEnabled=host.StartupAllowed,Margin=new Thickness(0,16,0,0)};
    if(!host.StartupAllowed)autoStart.ToolTip=L.T("Недоступно в тестовом режиме с --data-dir");
    controls.Children.Add(autoStart);
+   showOrbitCat=new CheckBox{Content=L.T("Показывать анимированного питомца"),IsChecked=draft.ShowOrbitCat,Margin=new Thickness(0,12,0,0)};
+   controls.Children.Add(showOrbitCat);
+   var petRow=new DockPanel{Margin=new Thickness(20,9,0,0)};petKind=new ComboBox{ItemsSource=new[]{L.T("По теме"),L.T("Котик"),L.T("Летучая мышь")},SelectedIndex=draft.OrbitPet=="cat"?1:draft.OrbitPet=="bat"?2:0,Width=220,IsEnabled=draft.ShowOrbitCat};System.Windows.Automation.AutomationProperties.SetName(petKind,L.T("Питомец"));DockPanel.SetDock(petKind,Dock.Right);petRow.Children.Add(petKind);var petLabel=UI.Text(L.T("Питомец"),12,UI.Ink);petLabel.VerticalAlignment=VerticalAlignment.Center;petRow.Children.Add(petLabel);controls.Children.Add(petRow);
+   petKind.SelectionChanged+=delegate{draft.OrbitPet=petKind.SelectedIndex==1?"cat":petKind.SelectedIndex==2?"bat":"theme";RefreshPreview();};
+   var catSpeedRow=new DockPanel{Margin=new Thickness(20,9,0,0)};var catSpeedValue=UI.Text(CatSpeedLabel(draft.OrbitCatSpeed),12,UI.Ink);catSpeedValue.Width=155;catSpeedValue.TextAlignment=TextAlignment.Right;DockPanel.SetDock(catSpeedValue,Dock.Right);catSpeedRow.Children.Add(catSpeedValue);catSpeedRow.Children.Add(UI.Text(L.T("Скорость питомца"),12,UI.Ink));controls.Children.Add(catSpeedRow);
+   orbitCatSpeed=new Slider{Minimum=.25,Maximum=3,TickFrequency=.25,IsSnapToTickEnabled=true,Value=draft.OrbitCatSpeed,Margin=new Thickness(20,3,0,0),IsEnabled=draft.ShowOrbitCat};System.Windows.Automation.AutomationProperties.SetName(orbitCatSpeed,L.T("Скорость питомца"));controls.Children.Add(orbitCatSpeed);
+   orbitCatSpeed.ValueChanged+=delegate{draft.OrbitCatSpeed=orbitCatSpeed.Value;catSpeedValue.Text=CatSpeedLabel(draft.OrbitCatSpeed);RefreshPreview();};
+   showOrbitCat.Checked+=delegate{draft.ShowOrbitCat=true;orbitCatSpeed.IsEnabled=petKind.IsEnabled=true;RefreshPreview();};showOrbitCat.Unchecked+=delegate{draft.ShowOrbitCat=false;orbitCatSpeed.IsEnabled=petKind.IsEnabled=false;RefreshPreview();};
    closeOnRepeat=new CheckBox{Content=L.T("Показывать выбор «Открыть повторно / Закрыть»"),IsChecked=draft.CloseOnRepeat,Margin=new Thickness(0,14,0,0)};
    controls.Children.Add(closeOnRepeat);
    var repeatHelp=UI.Text(L.T("Внешние секторы открывают или закрывают приложение. У Проводника можно закрыть все окна."),11,UI.Muted);repeatHelp.Margin=new Thickness(22,6,0,0);controls.Children.Add(repeatHelp);
@@ -172,9 +180,12 @@ namespace WheelPicker {
    toastTimer.Start();
   }
   private void ReadControls() {
+   draft.OrbitCatSpeed=orbitCatSpeed.Value;
+   draft.OrbitPet=petKind.SelectedIndex==1?"cat":petKind.SelectedIndex==2?"bat":"theme";
    draft.HoldToSelect=mode.SelectedIndex==1;draft.AtCursor=position.SelectedIndex==0;draft.Dark=theme.SelectedIndex!=0;draft.Halloween=theme.SelectedIndex==2;draft.Language=language.SelectedIndex==1?"en":"ru";
-   draft.AutoStart=autoStart.IsChecked==true;draft.CloseOnRepeat=closeOnRepeat.IsChecked==true;draft.ActivationDelayMs=(int)activationDelay.Value;draft.ForkOutwardPadding=(int)forkOutward.Value;draft.ForkSidePadding=(int)forkSide.Value;draft.ShowForkBounds=showForkBounds.IsChecked==true;
+   draft.AutoStart=autoStart.IsChecked==true;draft.ShowOrbitCat=showOrbitCat.IsChecked==true;draft.CloseOnRepeat=closeOnRepeat.IsChecked==true;draft.ActivationDelayMs=(int)activationDelay.Value;draft.ForkOutwardPadding=(int)forkOutward.Value;draft.ForkSidePadding=(int)forkSide.Value;draft.ShowForkBounds=showForkBounds.IsChecked==true;
   }
+  private static string CatSpeedLabel(double speed){return speed.ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)+"× · "+(OrbitCat.OrbitSeconds/speed).ToString("0.##",System.Globalization.CultureInfo.InvariantCulture)+L.T(" с на круг");}
   internal void ImportDraft(string path) {
    var info=new FileInfo(path);if(!info.Exists||info.Length>1024*1024)throw new InvalidDataException(L.T("Выберите файл настроек WheelPicker размером до 1 МБ."));
    var imported=Configuration.Load(path);imported.Validate();RenderSettings(imported);
