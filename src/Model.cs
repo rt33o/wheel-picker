@@ -10,8 +10,10 @@ namespace WheelPicker {
   [DataMember] public string Arguments {get;set;}
   [DataMember] public string WorkingDirectory {get;set;}
   [DataMember(EmitDefaultValue=false)] public string IconTarget {get;set;}
+  [DataMember(EmitDefaultValue=false)] public string WebIconData {get;set;}
   [DataMember(EmitDefaultValue=false)] public List<LaunchItem> Children {get;set;}
   public bool IsGroup {get{return Children!=null;}}
+  public bool IsWebLink {get{return !IsGroup&&WebLinks.HasScheme(Target);}}
   public LaunchItem Copy() {var copy=(LaunchItem)MemberwiseClone();if(Children!=null)copy.Children=Children.ConvertAll(i=>i.Copy());return copy;}
  }
  [DataContract] public sealed class Configuration {
@@ -43,10 +45,12 @@ namespace WheelPicker {
     if(i==null||String.IsNullOrWhiteSpace(i.Name))throw new InvalidDataException(L.T("У каждого приложения или группы должно быть название."));
     if(i.IsGroup) {
      if(i.Children.Count>3)throw new InvalidDataException(L.T("В группе может быть не больше 3 приложений."));
-     foreach(var child in i.Children)if(child==null||child.IsGroup||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException(L.T("В группе разрешены только приложения с названием и путём. Вложенные группы не поддерживаются."));
+     foreach(var child in i.Children){if(child==null||child.IsGroup||String.IsNullOrWhiteSpace(child.Name)||String.IsNullOrWhiteSpace(child.Target))throw new InvalidDataException(L.T("В группе разрешены только приложения с названием и путём. Вложенные группы не поддерживаются."));ValidateLink(child);}
     } else if(String.IsNullOrWhiteSpace(i.Target))throw new InvalidDataException(L.T("У каждого приложения должны быть название и путь."));
+    ValidateLink(i);
    }
   }
+  private static void ValidateLink(LaunchItem item){string normalized;if(item.IsWebLink&&!WebLinks.TryNormalize(item.Target,false,out normalized))throw new InvalidDataException(L.T("Некорректная веб-ссылка. Используйте адрес http:// или https://."));if(item.WebIconData!=null&&item.WebIconData.Length>200000)throw new InvalidDataException(L.T("Слишком большой значок ссылки."));}
   public static Configuration Defaults() {
    var c=new Configuration();
    c.Items.Add(new LaunchItem{Name=L.T("Проводник"),Target="explorer.exe"});

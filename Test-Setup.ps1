@@ -21,6 +21,7 @@ Assert (Test-Path -LiteralPath $app) 'Application installed into isolated per-us
 Assert ((Test-Path -LiteralPath (Join-Path $fixture 'App\docs\demo.gif')) -and (Test-Path -LiteralPath (Join-Path $fixture 'App\CHANGELOG.md'))) 'Offline documentation includes demo and changelog'
 Assert (Test-Path -LiteralPath (Join-Path $fixture 'App\unins000.exe')) 'Uninstaller is present'
 Assert ((Get-FileHash -LiteralPath $app).Hash -eq (Get-FileHash -LiteralPath (Join-Path $PSScriptRoot 'WheelPicker.exe')).Hash) 'Installed EXE matches payload'
+Assert ((Get-Item -LiteralPath $app).VersionInfo.FileVersion.Trim() -eq (Get-Item -LiteralPath (Join-Path $PSScriptRoot 'WheelPicker.exe')).VersionInfo.FileVersion.Trim()) 'Installed version metadata matches release payload'
 Assert (Test-Path -LiteralPath $registryKey) 'Registered in per-user Installed Apps'
 Assert ((Get-ItemProperty -LiteralPath $registryKey).DisplayName -eq 'WheelPicker') 'Uninstall entry has the expected name'
 Assert (Test-Path -LiteralPath (Join-Path $fixture 'StartMenu\WheelPicker.lnk')) 'Start menu shortcut exists'
@@ -45,11 +46,17 @@ $settings | Add-Member -NotePropertyName Language -NotePropertyValue 'en' -Force
 $settings | Add-Member -NotePropertyName Halloween -NotePropertyValue $true -Force
 $settings.Version=2
 $settings.Items += [pscustomobject]@{Name='Группа 🚀';Children=@([pscustomobject]@{Name='Блокнот';Target='notepad.exe';Arguments='';WorkingDirectory='';IconTarget=$null})}
+$iconData=[Convert]::ToBase64String([IO.File]::ReadAllBytes((Join-Path $PSScriptRoot 'PowerToysRun\wheel.png')))
+$webLink=[pscustomobject]@{Name='Notion';Target='https://www.notion.so/example?page=A#section';Arguments='';WorkingDirectory='';WebIconData=$iconData}
+$settings.Items[-1].Children += $webLink
+$settings.Items += [pscustomobject]@{Name='Drive';Target='https://drive.google.com/drive/u/0/';Arguments='';WorkingDirectory=''}
 $settings | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $settingsPath -Encoding utf8
 Run-Setup $setup @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART','/TASKS="powertoys"',('/LOG="'+(Join-Path $testRoot 'upgrade.log')+'"'))
 $updated = Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json
 Assert ($updated.Key -eq 86 -and $updated.Modifiers -eq 3 -and $updated.Items[0].Name -eq 'Проверка 🚀' -and $updated.ShowForkBounds) 'Upgrade preserves shortcut, Unicode apps and preferences'
-Assert ($updated.Version -eq 2 -and $updated.Items[-1].Name -eq 'Группа 🚀' -and $updated.Items[-1].Children[0].Target -eq 'notepad.exe') 'Upgrade preserves groups and their members'
+Assert ($updated.Version -eq 2 -and $updated.Items[-2].Name -eq 'Группа 🚀' -and $updated.Items[-2].Children[0].Target -eq 'notepad.exe') 'Upgrade preserves groups and their members'
+Assert ($updated.Items[-2].Children[1].Target -eq $webLink.Target -and $updated.Items[-2].Children[1].WebIconData -eq $iconData) 'Upgrade preserves grouped website URL and custom icon'
+Assert ($updated.Items[-1].Target -eq 'https://drive.google.com/drive/u/0/') 'Upgrade preserves standalone website links'
 Assert ($updated.Language -eq 'en' -and $updated.Halloween) 'Upgrade preserves English language and Halloween theme'
 Assert ($updated.AutoStart -eq $false) 'Upgrade applies disabled startup preference'
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Startup\WheelPicker.lnk'))) 'Upgrade removes unchecked startup shortcut'
@@ -67,6 +74,7 @@ Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'Plugin\wheelpicker-path.tx
 Assert (!(Test-Path -LiteralPath (Join-Path $fixture 'StartMenu\WheelPicker.lnk'))) 'Uninstall removes menu shortcut'
 Assert (Test-Path -LiteralPath $settingsPath) 'Uninstall preserves user settings'
 Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Key -eq 86) 'Preserved settings retain custom shortcut'
+Assert ((Get-Content -LiteralPath $settingsPath -Raw | ConvertFrom-Json).Items[-2].Children[1].WebIconData -eq $iconData) 'Uninstall preserves website icon backups'
 Assert ((Test-Path -LiteralPath (Join-Path $fixture 'App\user-file.txt')) -and (Test-Path -LiteralPath (Join-Path $fixture 'Plugin\user-file.txt'))) 'Uninstall leaves unrelated files untouched'
 # Compile the same script with absent-PowerToys detection to exercise standalone install.
 $standalone = Join-Path $testRoot 'Без PowerToys'

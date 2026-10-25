@@ -30,13 +30,13 @@ namespace WheelPicker {
   }
   internal bool TryAdd(LaunchItem item) {
    if(item==null||item.IsGroup)return false;
-   if(AppActivation.GroupContains(draft,item,-1)){Notify(L.T("Это приложение уже есть в группе."));return false;}
+   if(AppActivation.GroupContains(draft,item,-1)){Notify(item.IsWebLink?L.T("Эта ссылка уже есть в группе."):L.T("Это приложение уже есть в группе."));return false;}
    if(draft.Children.Count>=3){Notify(L.T("В группе может быть не больше 3 приложений."));return false;}
    draft.Children.Add(item.Copy());Refresh();return true;
   }
   internal bool TryReplace(int index,LaunchItem item) {
    if(index<0||index>=draft.Children.Count||item==null||item.IsGroup)return false;
-   if(AppActivation.GroupContains(draft,item,index)){Notify(L.T("Это приложение уже есть в группе."));return false;}
+   if(AppActivation.GroupContains(draft,item,index)){Notify(item.IsWebLink?L.T("Эта ссылка уже есть в группе."):L.T("Это приложение уже есть в группе."));return false;}
    draft.Children[index]=item.Copy();Refresh();return true;
   }
   private void Notify(string text) {

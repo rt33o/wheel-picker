@@ -41,7 +41,7 @@ namespace WheelPicker {
     }
     var english=new Configuration{Language="en",Halloween=true,Dark=true};UI.Configure(english);
     foreach(var pair in L.English)Check(!String.IsNullOrEmpty(pair.Value)&&!Regex.IsMatch(pair.Value,"[А-Яа-яЁё]"),"English resource contains complete English text");
-    var itemDialog=new ItemDialog(null);Check(NoRussian(itemDialog),"Add dialog and file-picker labels are English");SelfTests.RenderElement((FrameworkElement)itemDialog.Content,640,530,Path.Combine(folder,"add-halloween-en.png"),true);itemDialog.Close();
+    var itemDialog=new ItemDialog(null);Check(NoRussian(itemDialog),"Add dialog and file-picker labels are English");SelfTests.RenderElement((FrameworkElement)itemDialog.Content,640,600,Path.Combine(folder,"add-halloween-en.png"),true);itemDialog.Close();
     var group=new LaunchItem{Name="Tools",Children=new List<LaunchItem>{new LaunchItem{Name="Notepad",Target="notepad.exe"}}};var groupDialog=new GroupDialog(group);Check(NoRussian(groupDialog),"Group editor is English");groupDialog.Close();
     var picker=new ProgramPickerWindow(new List<InstalledProgram>{new InstalledProgram{Name="Sample",Target="notepad.exe"}});Check(NoRussian(picker),"Installed app chooser including status and tabs is English");picker.Close();
     english.Items.Add(group);var wheel=new WheelView(english,null,delegate(LaunchItem app){return true;});wheel.Select(0);wheel.SelectGroupChild(0);

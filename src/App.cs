@@ -31,6 +31,7 @@ namespace WheelPicker {
   internal Host(string data,bool startupAllowed) {
    StartupAllowed=startupAllowed;
    ConfigPath=Path.Combine(data,"settings.json");
+   WebIcons.CacheDirectory=Path.Combine(data,"Icons");
    try {Config=Configuration.Load(ConfigPath);} catch(Exception e) {Config=Configuration.Defaults(); MessageBox.Show(L.T("Не удалось прочитать настройки. Загружены значения по умолчанию. Исходный файл не изменён.\n\n")+e.Message,"WheelPicker");}
    UI.Configure(Config);
   }

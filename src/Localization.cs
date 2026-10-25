@@ -6,6 +6,21 @@ namespace WheelPicker {
   internal static void Set(string language){Language=language=="en"?"en":"ru";}
   internal static string T(string russian){string value;return Language=="en"&&English.TryGetValue(russian,out value)?value:russian;}
   internal static readonly Dictionary<string,string> English=new Dictionary<string,string>(StringComparer.Ordinal) {
+   {"Значок сайта","Website icon"},{"Выбрать значок…","Choose icon…"},{"Автоматически","Automatic"},
+   {"Автоматически с сайта · для личной страницы можно выбрать свой значок.","Automatic from website · choose a custom icon for a private page."},
+   {"Свой значок · сохраняется вместе с настройками.","Custom icon · included in settings backups."},
+   {"Выберите значок ссылки","Choose a link icon"},{"Изображения|*.png;*.ico;*.jpg;*.jpeg;*.gif;*.bmp","Images|*.png;*.ico;*.jpg;*.jpeg;*.gif;*.bmp"},
+   {"Выберите изображение PNG, ICO или JPG размером до 512 КБ.","Choose a PNG, ICO or JPG image up to 512 KB."},
+   {"Не удалось прочитать значок. Выберите PNG, ICO или JPG.","Could not read the icon. Choose a PNG, ICO or JPG image."},
+   {"Слишком большой значок ссылки.","Link icon is too large."},
+   {"Эта ссылка уже есть в группе.","This link is already in the group."},{"Эта ссылка уже есть в группе. Перенос отменён.","This link is already in the group. Move cancelled."},
+   {"Ссылка уже добавлена","Link already added"},{"» уже есть эта ссылка.","» already contains this link."},
+   {"Добавьте приложение или ссылку на сайт, например Notion или Google Drive.","Add an app or a website link, such as Notion or Google Drive."},
+   {"Тип элемента","Item type"},{"Приложение","App"},{"Ссылка","Website link"},{"Адрес сайта","Website address"},
+   {"Добавить ссылку","Add link"},{"Изменить ссылку","Edit link"},
+   {"Откроется в браузере по умолчанию. Можно вставить адрес без https://. Если название не указано, используем домен сайта.","Opens in your default browser. You can omit https://. Leave the name blank to use the website domain."},
+   {"Введите адрес сайта, например https://www.notion.so или drive.google.com.","Enter a website address, such as https://www.notion.so or drive.google.com."},
+   {"Некорректная веб-ссылка. Используйте адрес http:// или https://.","Invalid website link. Use an http:// or https:// address."},
    {"Неизвестный язык интерфейса.","Unknown interface language."},
    {"Язык интерфейса","Display language"},{"Хеллоуин","Halloween"},
    {"Сначала завершите ввод сочетания.","Finish entering the shortcut first."},

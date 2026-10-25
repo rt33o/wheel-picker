@@ -87,6 +87,7 @@ namespace WheelPicker {
    return true;
   }
   internal static ProcessStartInfo CreateLaunchInfo(LaunchItem item) {
+   if(item.IsWebLink)return WebLinks.LaunchInfo(item);
    string target=Environment.ExpandEnvironmentVariables(item.Target);
    var info=new ProcessStartInfo{FileName=target,Arguments=item.Arguments??"",UseShellExecute=true};
    if(IsShellTarget(target)) {
