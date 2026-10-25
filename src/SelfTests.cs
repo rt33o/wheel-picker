@@ -8,6 +8,7 @@ namespace WheelPicker {
   private static int checks;
   private static void Check(bool condition,string name) {if(!condition)throw new Exception("FAIL: "+name);checks++;}
   internal static void Run(string data) {
+   WebIcons.Downloader=delegate(Uri address){return null;};
    Directory.CreateDirectory(data);string path=Path.Combine(data,"test-settings.json");
    var c=Configuration.Defaults();c.Items[0].Name="Тест 🚀";c.Items[0].Arguments="--file \"C:\\Тест\\пример.txt\"";c.Save(path);
    var loaded=Configuration.Load(path);Check(loaded.Items[0].Name==c.Items[0].Name,"Unicode roundtrip");Check(loaded.Items[0].Arguments==c.Items[0].Arguments,"Arguments roundtrip");Check(loaded.Key==192 && loaded.Modifiers==0 && loaded.HoldToSelect,"Shortcut roundtrip");
@@ -53,6 +54,8 @@ namespace WheelPicker {
    checks+=GroupTests.Run(data);
    checks+=GroupDragTests.Run(data);
    checks+=AppearanceTests.Run(data);
+   checks+=WebLinkTests.Run(data);
+   checks+=WebIconTests.Run(data);
    File.WriteAllText(Path.Combine(data,"test-results.txt"),"PASS: "+checks+" checks\r\nPersistence, Unicode, atomic replacement, backup, validation, isolation and radial selection.\r\n");
   }
   private static void RunLifecycleTests(string data) {

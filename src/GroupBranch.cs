@@ -17,7 +17,7 @@ namespace WheelPicker {
   internal int Selected=-1,SelectedAction=-1;
   internal Path BoundsOverlay {get;private set;}
   internal LaunchItem SelectedItem {get{return Selected<0?null:group.Children[Selected];}}
-  internal bool HasBranch {get{return Selected>=0&&running[Selected]&&config.CloseOnRepeat;}}
+  internal bool HasBranch {get{return Selected>=0&&!SelectedItem.IsWebLink&&running[Selected]&&config.CloseOnRepeat;}}
   internal event Action Changed;
   internal event Action Pick;
   internal GroupBranch(Configuration c,LaunchItem item,double angle,double parentSpan,bool[] opened) {

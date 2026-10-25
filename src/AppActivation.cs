@@ -22,6 +22,7 @@ namespace WheelPicker {
   // Different installations remain distinct; shortcuts and executable aliases converge.
   internal static bool SameApplication(LaunchItem left,LaunchItem right) {
    if(left==null||right==null||left.IsGroup||right.IsGroup)return false;
+   if(left.IsWebLink||right.IsWebLink)return left.IsWebLink&&right.IsWebLink&&String.Equals(WebLinks.Identity(left.Target),WebLinks.Identity(right.Target),StringComparison.Ordinal);
    string a=ApplicationKey(left),b=ApplicationKey(right);
    return a.Length>0&&String.Equals(a,b,StringComparison.OrdinalIgnoreCase);
   }
@@ -71,6 +72,7 @@ namespace WheelPicker {
   [DllImport("shell32.dll")] private static extern int SHGetPropertyStoreForWindow(IntPtr window,ref Guid iid,out IPropertyStore store);
   [DllImport("ole32.dll")] private static extern int PropVariantClear(ref PropertyValue value);
   internal static AppIdentity Resolve(LaunchItem item) {
+   if(item.IsWebLink)return new AppIdentity();
    string target=Environment.ExpandEnvironmentVariables((item.Target??"").Trim().Trim('"'));
    string id=ApplicationCatalog.IsShellTarget(target)?target.Substring(ApplicationCatalog.ShellPrefix.Length):null;
    if(Path.GetExtension(target).Equals(".lnk",StringComparison.OrdinalIgnoreCase))target=ShortcutTarget(target);
@@ -91,6 +93,7 @@ namespace WheelPicker {
    return new AppIdentity{Executable=executable,AppId=id,Explorer=explorer};
   }
   internal static ProcessStartInfo LaunchInfo(LaunchItem item) {
+   if(item.IsWebLink)return WebLinks.LaunchInfo(item);
    var identity=Resolve(item);
    if(identity.Explorer) {
     var info=new ProcessStartInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows),"explorer.exe")){UseShellExecute=true};

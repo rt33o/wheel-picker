@@ -6,6 +6,10 @@ A radial application launcher for Windows 11, with optional PowerToys Run integr
 
 ![Choose an app, a group, or an open/close action](docs/demo.gif)
 
+## Version 1.4: website links and icons
+
+Choose **Item type → Website link** in the add dialog to open Notion, Google Drive, or any web page in your default browser. Links support groups, drag and drop, and settings backups. Website icons load in the background and are cached locally; private pages can use a custom PNG, ICO or JPG.
+
 ## Version 1.3: English and Halloween
 
 Russian and English interfaces and a **Halloween** theme with small vector pumpkins, bats, and warm accents on familiar Windows 11 surfaces.
@@ -28,6 +32,8 @@ PowerToys is optional. If you install the PowerToys Run adapter, restart PowerTo
 - A dot indicates a running app. Outer actions open another instance or request that its windows close. File Explorer can open a new folder window or close all folder windows.
 - Create groups of up to three apps. Drag existing entries into a group or add apps in the group editor. Duplicate members are rejected.
 - Choose installed desktop or Microsoft Store apps, or browse to a file or shortcut.
+- Select **Item type → Website link** in the add dialog to add Notion, Google Drive, or any specific web page. Addresses without a scheme receive `https://`; a blank name uses the website domain. Links open in your default browser and support groups and settings export.
+- Website icons load in the background and are cached locally. In the link editor, choose a custom PNG, ICO or JPG, or return to Automatic. Custom icons are included in settings backups and are useful for private Notion pages whose icon requires sign-in. WheelPicker does not use browser passwords or cookies.
 - Configure delay, placement, appearance, and action selection padding. Reorder entries by dragging; export and import settings.
 - PowerToys Run commands: **wheel** and **wheel settings**.
 

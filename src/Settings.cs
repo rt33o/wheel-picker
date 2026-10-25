@@ -33,7 +33,8 @@ namespace WheelPicker {
    WindowStyle=WindowStyle.None;ResizeMode=ResizeMode.CanResize;
    WindowChrome.SetWindowChrome(this,new WindowChrome{CaptionHeight=40,CornerRadius=new CornerRadius(12),GlassFrameThickness=new Thickness(0),ResizeBorderThickness=new Thickness(6),UseAeroCaptionButtons=false});
    PreviewKeyDown+=CaptureShortcut;
-   Closed+=delegate{appearanceRevision++;if(toastTimer!=null)toastTimer.Stop();if(recording){recording=false;host.ResumeHotkey();}UI.Configure(host.Config);};
+   WebIcons.Changed+=RefreshPreview;
+   Closed+=delegate{WebIcons.Changed-=RefreshPreview;appearanceRevision++;if(toastTimer!=null)toastTimer.Stop();if(recording){recording=false;host.ResumeHotkey();}UI.Configure(host.Config);};
    Reload();
   }
   internal void Reload() {RenderSettings(host.Config.Copy());}
@@ -207,7 +208,7 @@ namespace WheelPicker {
    if(DropPlacement(source,target,.5)==AppDropPlacement.None||placement==AppDropPlacement.None)return false;
    if(placement==AppDropPlacement.IntoGroup) {
     if(source.IsGroup||!target.IsGroup)return false;
-    if(AppActivation.GroupContains(target,source,-1)){status.Text=L.T("Это приложение уже есть в группе. Перенос отменён.");ShowToast(L.T("Приложение уже добавлено"),L.T("В группе «")+target.Name+L.T("» уже есть это приложение."),false);return false;}
+    if(AppActivation.GroupContains(target,source,-1)){status.Text=source.IsWebLink?L.T("Эта ссылка уже есть в группе. Перенос отменён."):L.T("Это приложение уже есть в группе. Перенос отменён.");ShowToast(source.IsWebLink?L.T("Ссылка уже добавлена"):L.T("Приложение уже добавлено"),L.T("В группе «")+target.Name+(source.IsWebLink?L.T("» уже есть эта ссылка."):L.T("» уже есть это приложение.")),false);return false;}
     if(target.Children.Count>=3){status.Text=L.T("В группе уже 3 приложения. Перенос отменён.");ShowToast(L.T("Группа заполнена"),L.T("В группе может быть не больше 3 приложений."),false);return false;}
     target.Children.Add(source);draft.Items.Remove(source);RefreshApps();RefreshPreview();status.Text="«"+source.Name+L.T("» перемещено в «")+target.Name+L.T("». Сохраните изменения.");return true;
    }
@@ -231,7 +232,7 @@ namespace WheelPicker {
    card.BorderBrush=UI.Accent;
    if(placement==AppDropPlacement.IntoGroup) {
     bool duplicate=AppActivation.GroupContains(target,source,-1),full=target.Children.Count>=3;card.BorderThickness=new Thickness(2.5);card.Background=(Brush)Application.Current.Resources["Tint"];
-    details.Text=duplicate?L.T("Это приложение уже есть в группе"):full?L.T("Группа заполнена · 3 / 3"):L.T("Отпустите, чтобы переместить «")+source.Name+"» · "+target.Children.Count+" / 3 → "+(target.Children.Count+1)+" / 3";
+    details.Text=duplicate?(source.IsWebLink?L.T("Эта ссылка уже есть в группе."):L.T("Это приложение уже есть в группе")):full?L.T("Группа заполнена · 3 / 3"):L.T("Отпустите, чтобы переместить «")+source.Name+"» · "+target.Children.Count+" / 3 → "+(target.Children.Count+1)+" / 3";
     if(dragCaption!=null)dragCaption.Text=duplicate?L.T("Перенос недоступен: приложение уже добавлено"):full?L.T("Перенос недоступен: в группе уже 3 приложения"):L.T("В группу «")+target.Name+"»";
    } else {
     card.Background=UI.Surface;card.BorderThickness=placement==AppDropPlacement.Before?new Thickness(1,3,1,1):new Thickness(1,1,1,3);
@@ -299,25 +300,54 @@ namespace WheelPicker {
  internal sealed class ItemDialog:Window {
   internal LaunchItem Result;
   private TextBox name,target,arguments,workdir;
+  private readonly ComboBox entryType;
+  private readonly TextBlock heading,targetLabel,argumentsLabel,workdirLabel,linkHelp,validation;
+  private readonly Button fileButton,browse;
+  private readonly bool editing;
+  private readonly StackPanel webIconRow;
+  private readonly Border webIconPreview;
+  private readonly TextBlock webIconStatus;
+  private System.Windows.Threading.DispatcherTimer iconPreviewTimer;
+  private string webIconData;
   private string iconTarget;
   private bool applyingProgram;
   internal ItemDialog(LaunchItem item) {
-   UI.ApplyWindowTheme(this);iconTarget=item==null?null:item.IconTarget;
-   Title=item==null?L.T("Добавить приложение"):L.T("Изменить приложение");Width=640;Height=530;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;ShowInTaskbar=false;
+   UI.ApplyWindowTheme(this);editing=item!=null;iconTarget=item==null?null:item.IconTarget;webIconData=item==null?null:item.WebIconData;
+   Title=item==null?L.T("Добавить приложение"):L.T("Изменить приложение");Width=640;Height=600;ResizeMode=ResizeMode.NoResize;WindowStartupLocation=WindowStartupLocation.CenterScreen;ShowInTaskbar=false;
    var panel=new StackPanel{Margin=new Thickness(26)};
-   var heading=UI.Text(Title,24,UI.Ink);heading.FontWeight=FontWeights.SemiBold;panel.Children.Add(heading);
-   var desc=UI.Text(L.T("Программа, ярлык или URI — например ms-settings:"),12,UI.Muted);desc.Margin=new Thickness(0,8,0,20);panel.Children.Add(desc);
+   heading=UI.Text(Title,24,UI.Ink);heading.FontWeight=FontWeights.SemiBold;panel.Children.Add(heading);
+   var desc=UI.Text(L.T("Добавьте приложение или ссылку на сайт, например Notion или Google Drive."),12,UI.Muted);desc.Margin=new Thickness(0,8,0,16);panel.Children.Add(desc);
+   var typeRow=new DockPanel{Margin=new Thickness(0,0,0,4)};entryType=new ComboBox{ItemsSource=new[]{L.T("Приложение"),L.T("Ссылка")},SelectedIndex=item!=null&&item.IsWebLink?1:0,Width=220};DockPanel.SetDock(entryType,Dock.Right);typeRow.Children.Add(entryType);var typeLabel=UI.Text(L.T("Тип элемента"),12,UI.Muted);typeLabel.VerticalAlignment=VerticalAlignment.Center;typeRow.Children.Add(typeLabel);System.Windows.Automation.AutomationProperties.SetName(entryType,L.T("Тип элемента"));panel.Children.Add(typeRow);
    name=Field(panel,L.T("Название"),item==null?"":item.Name);
-   var label=UI.Text(L.T("Программа или ярлык"),11,UI.Muted);label.Margin=new Thickness(0,12,0,6);panel.Children.Add(label);
-   var browseRow=new DockPanel();var fileButton=UI.Button(L.T("Файл…"),BrowseFile);fileButton.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(fileButton,Dock.Right);browseRow.Children.Add(fileButton);var browse=UI.Button(L.T("Обзор…"),Browse);browse.ToolTip=L.T("Выбрать из установленных приложений");browse.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(browse,Dock.Right);browseRow.Children.Add(browse);target=new TextBox{Text=item==null?"":item.Target};browseRow.Children.Add(target);panel.Children.Add(browseRow);
-   arguments=Field(panel,L.T("Аргументы (необязательно)"),item==null?"":item.Arguments);
-   workdir=Field(panel,L.T("Рабочая папка (необязательно)"),item==null?"":item.WorkingDirectory);
-   target.TextChanged+=delegate{if(!applyingProgram)iconTarget=null;UpdateArgumentState();};UpdateArgumentState();
+   targetLabel=UI.Text(L.T("Программа или ярлык"),11,UI.Muted);targetLabel.Margin=new Thickness(0,12,0,6);panel.Children.Add(targetLabel);
+   var browseRow=new DockPanel();fileButton=UI.Button(L.T("Файл…"),BrowseFile);fileButton.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(fileButton,Dock.Right);browseRow.Children.Add(fileButton);browse=UI.Button(L.T("Обзор…"),Browse);browse.ToolTip=L.T("Выбрать из установленных приложений");browse.Margin=new Thickness(8,0,0,0);DockPanel.SetDock(browse,Dock.Right);browseRow.Children.Add(browse);target=new TextBox{Text=item==null?"":item.Target};browseRow.Children.Add(target);panel.Children.Add(browseRow);
+   linkHelp=UI.Text(L.T("Откроется в браузере по умолчанию. Можно вставить адрес без https://. Если название не указано, используем домен сайта."),12,UI.Muted);linkHelp.Margin=new Thickness(0,8,0,0);panel.Children.Add(linkHelp);
+   webIconRow=new StackPanel{Margin=new Thickness(0,16,0,0)};webIconRow.Children.Add(UI.Text(L.T("Значок сайта"),11,UI.Muted));var iconControls=new DockPanel{Margin=new Thickness(0,7,0,0),LastChildFill=false};
+   webIconPreview=new Border{Width=38,Height=38,Margin=new Thickness(0,0,12,0)};DockPanel.SetDock(webIconPreview,Dock.Left);iconControls.Children.Add(webIconPreview);
+   var selectIcon=UI.Button(L.T("Выбрать значок…"),ChooseWebIcon);DockPanel.SetDock(selectIcon,Dock.Left);selectIcon.Margin=new Thickness(0,0,8,0);iconControls.Children.Add(selectIcon);
+   var automatic=UI.Button(L.T("Автоматически"),delegate{webIconData=null;RefreshWebIcon();});DockPanel.SetDock(automatic,Dock.Left);iconControls.Children.Add(automatic);webIconRow.Children.Add(iconControls);
+   webIconStatus=UI.Text("",11,UI.Muted);webIconStatus.Margin=new Thickness(0,6,0,0);webIconRow.Children.Add(webIconStatus);panel.Children.Add(webIconRow);
+   arguments=Field(panel,L.T("Аргументы (необязательно)"),item==null?"":item.Arguments,out argumentsLabel);
+   workdir=Field(panel,L.T("Рабочая папка (необязательно)"),item==null?"":item.WorkingDirectory,out workdirLabel);
+   validation=UI.Text("",12,UI.Accent);validation.Margin=new Thickness(0,10,0,0);validation.Visibility=Visibility.Collapsed;panel.Children.Add(validation);
+   entryType.SelectionChanged+=delegate{UpdateEntryType();};
+   target.TextChanged+=delegate{if(!applyingProgram){iconTarget=null;string normalized;if(WebLinks.HasScheme(target.Text)&&WebLinks.TryNormalize(target.Text,false,out normalized))entryType.SelectedIndex=1;}validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();};UpdateEntryType();
    var buttons=new StackPanel{Orientation=Orientation.Horizontal,HorizontalAlignment=HorizontalAlignment.Right,Margin=new Thickness(0,24,0,0)};
    var cancel=UI.Button(L.T("Отмена"),delegate{DialogResult=false;});cancel.IsCancel=true;buttons.Children.Add(cancel);
-   var save=UI.Button(item==null?L.T("Добавить"):L.T("Готово"),Save);UI.Primary(save);save.Margin=new Thickness(8,0,0,0);save.IsDefault=true;buttons.Children.Add(save);panel.Children.Add(buttons);Content=panel;Loaded+=delegate{name.Focus();};
+   var save=UI.Button(item==null?L.T("Добавить"):L.T("Готово"),Save);UI.Primary(save);save.Margin=new Thickness(8,0,0,0);save.IsDefault=true;buttons.Children.Add(save);panel.Children.Add(buttons);Content=panel;Loaded+=delegate{name.Focus();};Closed+=delegate{if(iconPreviewTimer!=null)iconPreviewTimer.Stop();};
   }
-  private TextBox Field(StackPanel p,string label,string value) {var l=UI.Text(label,11,UI.Muted);l.Margin=new Thickness(0,12,0,6);p.Children.Add(l);var t=new TextBox{Text=value??""};p.Children.Add(t);return t;}
+  private TextBox Field(StackPanel p,string label,string value){TextBlock unused;return Field(p,label,value,out unused);}
+  private TextBox Field(StackPanel p,string label,string value,out TextBlock l) {l=UI.Text(label,11,UI.Muted);l.Margin=new Thickness(0,12,0,6);p.Children.Add(l);var t=new TextBox{Text=value??""};p.Children.Add(t);return t;}
+  private void UpdateEntryType() {
+   bool link=entryType.SelectedIndex==1;Height=link?580:600;
+   Title=heading.Text=link?(editing?L.T("Изменить ссылку"):L.T("Добавить ссылку")):(editing?L.T("Изменить приложение"):L.T("Добавить приложение"));
+   targetLabel.Text=link?L.T("Адрес сайта"):L.T("Программа или ярлык");
+   browse.Visibility=fileButton.Visibility=arguments.Visibility=argumentsLabel.Visibility=workdir.Visibility=workdirLabel.Visibility=link?Visibility.Collapsed:Visibility.Visible;
+   webIconRow.Visibility=linkHelp.Visibility=link?Visibility.Visible:Visibility.Collapsed;validation.Visibility=Visibility.Collapsed;UpdateArgumentState();ScheduleWebIcon();
+  }
+  private void ScheduleWebIcon(){if(iconPreviewTimer!=null)iconPreviewTimer.Stop();if(entryType.SelectedIndex!=1)return;iconPreviewTimer=new System.Windows.Threading.DispatcherTimer{Interval=TimeSpan.FromMilliseconds(600)};iconPreviewTimer.Tick+=delegate{iconPreviewTimer.Stop();RefreshWebIcon();};iconPreviewTimer.Start();webIconStatus.Text=String.IsNullOrEmpty(webIconData)?L.T("Автоматически с сайта · для личной страницы можно выбрать свой значок."):L.T("Свой значок · сохраняется вместе с настройками.");if(webIconPreview.Child==null)webIconPreview.Child=WebLinks.Icon(32);}
+  private void RefreshWebIcon(){string address;webIconPreview.Child=WebLinks.TryNormalize(target.Text,true,out address)?WebIcons.Element(new LaunchItem{Target=address,WebIconData=webIconData},32):WebLinks.Icon(32);webIconStatus.Text=String.IsNullOrEmpty(webIconData)?L.T("Автоматически с сайта · для личной страницы можно выбрать свой значок."):L.T("Свой значок · сохраняется вместе с настройками.");}
+  private void ChooseWebIcon(){var dialog=new Microsoft.Win32.OpenFileDialog{Title=L.T("Выберите значок ссылки"),Filter=L.T("Изображения|*.png;*.ico;*.jpg;*.jpeg;*.gif;*.bmp"),CheckFileExists=true};if(dialog.ShowDialog(this)!=true)return;try{webIconData=WebIcons.CustomIcon(dialog.FileName);RefreshWebIcon();validation.Visibility=Visibility.Collapsed;}catch(Exception e){if(!(e is IOException)&&!(e is UnauthorizedAccessException)&&!(e is ArgumentException))throw;validation.Text=e.Message;validation.Visibility=Visibility.Visible;}}
   private void Browse() {
    var picker=new ProgramPickerWindow{Owner=this};
    if(picker.ShowDialog()==true && picker.SelectedProgram!=null)ApplyInstalledProgram(picker.SelectedProgram);
@@ -325,18 +355,22 @@ namespace WheelPicker {
   }
   internal void ApplyInstalledProgram(InstalledProgram program) {
    applyingProgram=true;
-   try {name.Text=program.Name;target.Text=program.Target;arguments.Text=program.Arguments??"";workdir.Text=program.WorkingDirectory??"";iconTarget=program.IconTarget;}
+   try {entryType.SelectedIndex=0;name.Text=program.Name;target.Text=program.Target;arguments.Text=program.Arguments??"";workdir.Text=program.WorkingDirectory??"";iconTarget=program.IconTarget;}
    finally{applyingProgram=false;}
    UpdateArgumentState();
   }
   private void UpdateArgumentState() {
-   bool shell=ApplicationCatalog.IsShellTarget(target.Text);
-   arguments.IsEnabled=!shell;
+   bool shell=ApplicationCatalog.IsShellTarget(target.Text),link=entryType.SelectedIndex==1;
+   arguments.IsEnabled=!shell&&!link;workdir.IsEnabled=!link;
    arguments.ToolTip=shell?L.T("Это приложение запускается через каталог Windows; дополнительные аргументы недоступны."):null;
    if(shell)arguments.Text="";
   }
   private void BrowseFile() {var d=new Microsoft.Win32.OpenFileDialog{Title=L.T("Выберите программу или ярлык"),Filter=L.T("Программы и ярлыки|*.exe;*.lnk;*.url;*.bat;*.cmd|Все файлы|*.*"),CheckFileExists=true,DereferenceLinks=false};if(d.ShowDialog(this)==true){target.Text=d.FileName;if(String.IsNullOrWhiteSpace(name.Text))name.Text=Path.GetFileNameWithoutExtension(d.FileName);}}
   private void Save() {
+   if(entryType.SelectedIndex==1||WebLinks.HasScheme(target.Text)) {
+    LaunchItem item;string error;if(!WebLinks.TryCreate(name.Text,target.Text,out item,out error)){validation.Text=error;validation.Visibility=Visibility.Visible;target.Focus();return;}
+    item.WebIconData=webIconData;Result=item;DialogResult=true;return;
+   }
    if(String.IsNullOrWhiteSpace(name.Text)||String.IsNullOrWhiteSpace(target.Text)){MessageBox.Show(this,L.T("Введите название и выберите программу."),"WheelPicker");return;}
    string path=target.Text.Trim().Trim('"');string expanded=Environment.ExpandEnvironmentVariables(path);
    if(Path.IsPathRooted(expanded)&&!File.Exists(expanded)){MessageBox.Show(this,L.T("Указанный файл не найден."),"WheelPicker");return;}

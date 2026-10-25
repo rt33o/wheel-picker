@@ -37,9 +37,10 @@ namespace WheelPicker {
   internal WheelView(Configuration c):this(c,null) {}
   internal WheelView(Configuration c,bool[] opened):this(c,opened,null) {}
   internal WheelView(Configuration c,bool[] opened,Func<LaunchItem,bool> runningProbe) {
-   running=opened??new bool[c.Items.Count];branchable=new bool[c.Items.Count];explorer=new bool[c.Items.Count];
+   running=opened==null?new bool[c.Items.Count]:(bool[])opened.Clone();branchable=new bool[c.Items.Count];explorer=new bool[c.Items.Count];
    for(int i=0;i<branchable.Length;i++) {
-    if(c.Items[i].IsGroup){var states=new bool[c.Items[i].Children.Count];for(int j=0;j<states.Length;j++){states[j]=runningProbe!=null&&runningProbe(c.Items[i].Children[j]);if(states[j]&&i<running.Length)running[i]=true;}groupOpened[c.Items[i]]=states;continue;}
+    if(c.Items[i].IsWebLink){if(i<running.Length)running[i]=false;continue;}
+    if(c.Items[i].IsGroup){var states=new bool[c.Items[i].Children.Count];for(int j=0;j<states.Length;j++){states[j]=!c.Items[i].Children[j].IsWebLink&&runningProbe!=null&&runningProbe(c.Items[i].Children[j]);if(states[j]&&i<running.Length)running[i]=true;}groupOpened[c.Items[i]]=states;continue;}
     branchable[i]=i<running.Length&&running[i];if(branchable[i])explorer[i]=AppActivation.Resolve(c.Items[i]).Explorer;
    }
    config=c;ReleaseMode=c.HoldToSelect; Width=780; Height=780; Background=Brushes.Transparent;
